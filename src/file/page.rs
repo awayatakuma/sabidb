@@ -22,26 +22,26 @@ impl Page {
         self.bb[offset] = n
     }
 
-    pub fn get_bytes(self, offset: usize) -> Vec<u8> {
+    pub fn get_bytes(&self, offset: usize) -> Vec<u8> {
         let length = self.bb[offset] as usize;
         return self.bb[offset + 1..=offset + length].to_vec();
     }
 
-    pub fn set_bytes(&mut self, offset: usize, b: Vec<u8>) {
+    pub fn set_bytes(&mut self, offset: usize, b: &Vec<u8>) {
         self.bb[offset] = b.len() as u8;
         for i in 0..b.len() {
             self.bb[offset + 1 + i] = b[i];
         }
     }
 
-    pub fn get_string(self, offset: usize) -> Result<String, std::string::FromUtf8Error> {
+    pub fn get_string(&self, offset: usize) -> Result<String, std::string::FromUtf8Error> {
         let ret: Vec<u8> = self.get_bytes(offset);
         return String::from_utf8(ret);
     }
 
-    pub fn set_string(&mut self, offset: usize, s: String) {
-        let bytes = s.into_bytes();
-        self.set_bytes(offset, bytes);
+    pub fn set_string(&mut self, offset: usize, s: &String) {
+        let bytes = s.clone().into_bytes();
+        self.set_bytes(offset, &bytes);
     }
 
     pub fn max_length(strlen: usize) -> usize {
@@ -50,8 +50,12 @@ impl Page {
         std::mem::size_of::<i32>() + (strlen * BYTES_PER_CHAR)
     }
 
-    fn contents(self) -> Vec<u8> {
-        return self.bb;
+    pub(super) fn contents(&self) -> Vec<u8> {
+        return self.bb.clone();
+    }
+
+    pub(super) fn set_contents(&mut self, b: Vec<u8>) {
+        self.bb = b;
     }
 }
 
@@ -104,7 +108,7 @@ mod tests {
     fn test_set_bytes() {
         let mut page = Page::new_from_blocksize(10);
         let data = vec![1, 2, 3];
-        page.set_bytes(0, data);
+        page.set_bytes(0, &data);
         assert_eq!(page.bb[1..4], vec![1, 2, 3]);
     }
 
@@ -122,7 +126,7 @@ mod tests {
     #[test]
     fn test_set_string() {
         let mut page = Page::new_from_blocksize(10);
-        page.set_string(0, "Hello".to_string());
+        page.set_string(0, &"Hello".to_string());
         let res = page.get_string(0);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), "Hello")
