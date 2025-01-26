@@ -1,36 +1,43 @@
+use crate::constants::INTEGER_BYTES;
+use std::{cell::RefCell, rc::Rc};
+
 pub struct Page {
-    bb: Vec<u8>,
+    bb: Rc<RefCell<Vec<u8>>>,
 }
 
 impl Page {
     pub fn new_from_blocksize(blocksize: usize) -> Self {
         return Page {
-            bb: vec![0; blocksize],
+            bb: Rc::new(RefCell::new(vec![0; blocksize])),
         };
     }
 
     pub fn new_from_bytes(b: Vec<u8>) -> Self {
-        return Page { bb: b };
+        return Page {
+            bb: Rc::new(RefCell::new(b)),
+        };
     }
 
-    pub fn get_int(&self, offset: usize) -> Option<u8> {
-        let ret = self.bb.get(offset).copied();
-        ret
+    pub fn get_int(&self, offset: usize) -> Option<i32> {
+        let binding = self.bb.borrow();
+        let ret = binding.get(offset..offset + INTEGER_BYTES);
+        Some(i32::from_be_bytes(ret.unwrap().try_into().unwrap()))
     }
 
-    pub fn set_int(&mut self, offset: usize, n: u8) {
-        self.bb[offset] = n
+    pub fn set_int(&mut self, offset: usize, n: i32) {
+        let n_bytes = n.to_be_bytes();
+        self.bb.borrow_mut()[offset..offset + INTEGER_BYTES].copy_from_slice(&n_bytes);
     }
 
     pub fn get_bytes(&self, offset: usize) -> Vec<u8> {
-        let length = self.bb[offset] as usize;
-        return self.bb[offset + 1..=offset + length].to_vec();
+        let length = self.get_int(offset).unwrap() as usize;
+        return self.bb.borrow()[offset + INTEGER_BYTES..offset + INTEGER_BYTES + length].to_vec();
     }
 
     pub fn set_bytes(&mut self, offset: usize, b: &Vec<u8>) {
-        self.bb[offset] = b.len() as u8;
+        self.set_int(offset, b.len() as i32);
         for i in 0..b.len() {
-            self.bb[offset + 1 + i] = b[i];
+            self.bb.borrow_mut()[offset + INTEGER_BYTES + i] = b[i];
         }
     }
 
@@ -47,15 +54,15 @@ impl Page {
     pub fn max_length(strlen: usize) -> usize {
         // In this Database, only ascii is allowed to use as string
         const BYTES_PER_CHAR: usize = 1;
-        std::mem::size_of::<i32>() + (strlen * BYTES_PER_CHAR)
+        INTEGER_BYTES + (strlen * BYTES_PER_CHAR)
     }
 
-    pub(super) fn contents(&self) -> Vec<u8> {
+    pub fn contents(&self) -> Rc<RefCell<Vec<u8>>> {
         return self.bb.clone();
     }
 
     pub(super) fn set_contents(&mut self, b: Vec<u8>) {
-        self.bb = b;
+        self.bb = Rc::new(RefCell::new(b));
     }
 }
 
@@ -66,41 +73,40 @@ mod tests {
     #[test]
     fn test_new_from_blocksize() {
         let page = Page::new_from_blocksize(100);
-        assert_eq!(page.bb.len(), 100);
-        assert!(page.bb.iter().all(|&x| x == 0));
+        assert_eq!(page.bb.borrow_mut().len(), 100);
+        assert!(page.bb.borrow().iter().all(|&x| x == 0));
     }
 
     #[test]
     fn test_new_from_bytes() {
         let data = vec![1, 2, 3, 4, 5];
         let page = Page::new_from_bytes(data.clone());
-        assert_eq!(page.bb, data);
+        assert_eq!(*page.bb.borrow(), data);
     }
 
     #[test]
     fn test_get_int() {
-        let page = Page::new_from_bytes(vec![10, 20, 30]);
-        assert_eq!(page.get_int(0), Some(10));
-        assert_eq!(page.get_int(1), Some(20));
-        assert_eq!(page.get_int(3), None); // Out of bounds
+        let page = Page::new_from_bytes(vec![0, 0, 0, 1]);
+        assert_eq!(page.get_int(0), Some(1));
     }
 
     #[test]
     fn test_set_int() {
-        let mut page = Page::new_from_blocksize(3);
+        let mut page = Page::new_from_blocksize(4);
         page.set_int(0, 42);
         assert_eq!(page.get_int(0), Some(42));
     }
 
     #[test]
     fn test_get_bytes() {
-        let mut data = vec![0; 10];
-        data[3] = 3; // Length of subsequent data
+        let mut data = vec![0; 8];
+        data[3] = 3;
         data[4] = 10;
         data[5] = 20;
         data[6] = 30;
+
         let page = Page::new_from_bytes(data);
-        let bytes = page.get_bytes(3);
+        let bytes = page.get_bytes(0);
         assert_eq!(bytes, vec![10, 20, 30]);
     }
 
@@ -109,14 +115,14 @@ mod tests {
         let mut page = Page::new_from_blocksize(10);
         let data = vec![1, 2, 3];
         page.set_bytes(0, &data);
-        assert_eq!(page.bb[1..4], vec![1, 2, 3]);
+        assert_eq!(page.bb.borrow()[4..7], vec![1, 2, 3]);
     }
 
     #[test]
     fn test_get_string() {
         let mut data = vec![0; 10];
-        data[0] = 5;
-        data[1..6].copy_from_slice(b"Hello");
+        data[3] = 5;
+        data[4..9].copy_from_slice(b"Hello");
         let page = Page::new_from_bytes(data);
         let result = page.get_string(0);
         assert!(result.is_ok());

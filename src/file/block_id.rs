@@ -1,12 +1,13 @@
+use std::clone;
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct BlockId {
     file_name: String,
-    blknum: u64,
+    blknum: i32,
 }
 
 impl BlockId {
-    pub fn new(file_name: String, blknum: u64) -> Self {
+    pub fn new(file_name: String, blknum: i32) -> Self {
         Self { file_name, blknum }
     }
 
@@ -14,7 +15,7 @@ impl BlockId {
         self.file_name.clone()
     }
 
-    pub fn number(&self) -> u64 {
+    pub fn number(&self) -> i32 {
         self.blknum
     }
 }

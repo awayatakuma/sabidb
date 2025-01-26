@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::error::Error;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::Path;
@@ -8,13 +7,13 @@ use crate::file::block_id::BlockId;
 use crate::file::page::Page;
 
 pub struct FileManager {
-    blocksize: u64,
+    blocksize: i32,
     db_directory: String,
     open_files: HashMap<String, File>,
 }
 
 impl FileManager {
-    pub fn new_from_blocksize(db_directory: String, blocksize: u64) -> Self {
+    pub fn new_from_blocksize(db_directory: String, blocksize: i32) -> Self {
         // TODO: need to implement to create directory and remove temp files
         Self {
             blocksize,
@@ -25,54 +24,54 @@ impl FileManager {
 
     pub fn read(&mut self, blk: &BlockId, p: &mut Page) -> std::io::Result<()> {
         let blocksize = self.blocksize;
-        let mut contents = p.contents();
+        let contents = p.contents();
 
-        let f = self.get_file(blk.file_name())?;
-        f.seek(SeekFrom::Start(blk.number() * blocksize as u64))?;
-        let _ = f.read(contents.as_mut_slice());
-        p.set_contents(contents);
+        let f = self.get_file(&blk.file_name())?;
+        f.seek(SeekFrom::Start((blk.number() * blocksize) as u64))?;
+        let _ = f.read(contents.borrow_mut().as_mut_slice());
+        p.set_contents(contents.borrow().clone());
         Ok(())
     }
 
     pub fn write(&mut self, blk: &BlockId, p: &Page) -> std::io::Result<()> {
         let blocksize = self.blocksize;
-        let f = self.get_file(blk.file_name())?;
+        let f = self.get_file(&blk.file_name())?;
         let contents = p.contents();
 
-        f.seek(SeekFrom::Start(blk.number() * blocksize as u64))?;
+        f.seek(SeekFrom::Start((blk.number() * blocksize) as u64))?;
 
-        f.write_all(contents.as_slice())?;
+        f.write_all(contents.borrow().as_slice())?;
 
         Ok(())
     }
 
-    pub fn append(&mut self, filename: &String) -> std::io::Result<()> {
+    pub fn append(&mut self, filename: &String) -> std::io::Result<BlockId> {
         let blocksize = self.blocksize;
-        let newblknum = self.len(filename.clone())?;
+        let newblknum = self.len(&filename)?;
         let blk = BlockId::new(filename.clone(), newblknum);
         let b = vec![0u8; blocksize as usize];
 
-        let f = self.get_file(filename.clone())?;
+        let f = self.get_file(&filename.clone())?;
 
-        f.seek(SeekFrom::Start(blk.number() * blocksize as u64))?;
+        f.seek(SeekFrom::Start((blk.number() * blocksize) as u64))?;
 
         f.write_all(b.as_slice())?;
 
-        Ok(())
+        Ok(blk)
     }
 
-    pub fn len(&mut self, filename: String) -> std::io::Result<u64> {
+    pub fn len(&mut self, filename: &String) -> std::io::Result<i32> {
         let f = self.get_file(filename)?;
-        let len = f.metadata()?.len() / self.blocksize;
+        let len = f.metadata()?.len() as i32 / self.blocksize;
         return Ok(len);
     }
 
-    pub fn block_size(&self) -> u64 {
+    pub fn block_size(&self) -> i32 {
         self.blocksize
     }
 
-    fn get_file(&mut self, filename: String) -> io::Result<&mut File> {
-        if !self.open_files.contains_key(&filename) {
+    fn get_file(&mut self, filename: &String) -> io::Result<&mut File> {
+        if !self.open_files.contains_key(filename) {
             let db_table = Path::new(&self.db_directory).join(&filename);
             let file = OpenOptions::new()
                 .read(true)
@@ -83,7 +82,7 @@ impl FileManager {
             self.open_files.insert(filename.to_string(), file);
         }
 
-        Ok(self.open_files.get_mut(&filename).unwrap())
+        Ok(self.open_files.get_mut(filename).unwrap())
     }
 }
 
@@ -110,14 +109,14 @@ mod tests {
         let (mut fm, _temp_dir) = setup();
         let filename = "test.db".to_string();
         let blk = BlockId::new(filename.clone(), 0);
-        let mut page = Page::new_from_blocksize(101);
+        let mut page = Page::new_from_blocksize(104);
         page.set_bytes(0, &vec![1u8; 100]);
 
         // Write
         fm.write(&blk, &page).unwrap();
 
         // Read
-        let mut read_page = Page::new_from_blocksize(101);
+        let mut read_page = Page::new_from_blocksize(104);
         fm.read(&blk, &mut read_page).unwrap();
 
         assert_eq!(page.contents(), read_page.contents());
@@ -129,10 +128,10 @@ mod tests {
         let filename = "test.db".to_string();
 
         fm.append(&filename).unwrap();
-        assert_eq!(fm.len(filename.clone()).unwrap(), 1);
+        assert_eq!(fm.len(&filename).unwrap(), 1);
 
         fm.append(&filename).unwrap();
-        assert_eq!(fm.len(filename.clone()).unwrap(), 2);
+        assert_eq!(fm.len(&filename).unwrap(), 2);
     }
 
     #[test]
@@ -140,10 +139,10 @@ mod tests {
         let (mut fm, _temp_dir) = setup();
         let filename = "test.db".to_string();
 
-        assert_eq!(fm.len(filename.clone()).unwrap(), 0);
+        assert_eq!(fm.len(&filename).unwrap(), 0);
 
         fm.append(&filename).unwrap();
-        assert_eq!(fm.len(filename.clone()).unwrap(), 1);
+        assert_eq!(fm.len(&filename).unwrap(), 1);
     }
 
     #[test]
@@ -151,7 +150,7 @@ mod tests {
         let (mut fm, temp_dir) = setup();
         let filename = "test.db".to_string();
 
-        fm.get_file(filename.clone()).unwrap();
+        fm.get_file(&filename).unwrap();
 
         assert!(temp_dir.path().join(&filename).exists());
     }
