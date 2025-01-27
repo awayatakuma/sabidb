@@ -48,7 +48,9 @@ impl LogMgr {
     }
 
     pub fn iterator(&mut self) -> LogIterator {
-        self.flush_internal();
+        // self.flush_internal();
+        // TO-DO: In textbook, this code is needed but I think you cannot match requirement described in p84 if this code remains.
+        // So if another problem happens related to this code, I will remove the comment out.
         return LogIterator::new(self.fm.clone(), self.current_blk.clone());
     }
 
@@ -85,7 +87,7 @@ impl LogMgr {
 
 #[cfg(test)]
 mod tests {
-    use std::{cell::Ref, clone, process::Command};
+    use std::process::Command;
 
     use tempfile::TempDir;
 
@@ -121,98 +123,98 @@ mod tests {
             println!("[ {} , {} ]", s, val)
         }
         println!();
+    }
 
-        fn create_records(lm: Rc<RefCell<LogMgr>>, start: i32, end: i32) {
-            println!("Creating records:");
-            for i in start..end {
-                let s = format!("{}{}", "record".to_string(), i.to_string());
-                let npos = Page::max_length(s.len());
-                let b = vec![0u8; npos + INTEGER_BYTES];
-                let mut p = Page::new_from_bytes(b);
-                p.set_string(0, &s);
-                p.set_int(npos, i);
-                let lsm = lm.borrow_mut().append(p.contents().borrow_mut().to_vec());
-                print!("{} ", lsm)
-            }
-            println!()
+    fn create_records(lm: Rc<RefCell<LogMgr>>, start: i32, end: i32) {
+        println!("Creating records:");
+        for i in start..=end {
+            let s = format!("{}{}", "record".to_string(), i.to_string());
+            let npos = Page::max_length(s.len());
+            let b = vec![0u8; npos + INTEGER_BYTES];
+            let mut p = Page::new_from_bytes(b);
+            p.set_string(0, &s);
+            p.set_int(npos, i);
+            let lsm = lm.borrow_mut().append(p.contents().borrow_mut().to_vec());
+            print!("{} ", lsm)
         }
+        println!()
+    }
 
-        #[test]
-        fn test_log_mgr_new() {
-            let (fm, _temp_dir) = create_test_file_manager();
-            let logfile = "test_log.log".to_string();
+    #[test]
+    fn test_log_mgr_new() {
+        let (fm, _temp_dir) = create_test_file_manager();
+        let logfile = "test_log.log".to_string();
 
-            let log_mgr = LogMgr::new(fm.clone(), logfile.clone());
+        let log_mgr = LogMgr::new(fm.clone(), logfile.clone());
 
-            assert_eq!(log_mgr.logfile, logfile);
-            assert_eq!(log_mgr.latest_lsn, 0);
-            assert_eq!(log_mgr.last_save_lsn, 0);
-        }
+        assert_eq!(log_mgr.logfile, logfile);
+        assert_eq!(log_mgr.latest_lsn, 0);
+        assert_eq!(log_mgr.last_save_lsn, 0);
+    }
 
-        #[test]
-        fn test_log_mgr_append() {
-            let (fm, _temp_dir) = create_test_file_manager();
-            let logfile = "test_log.log".to_string();
-            let mut log_mgr = LogMgr::new(fm, logfile);
+    #[test]
+    fn test_log_mgr_append() {
+        let (fm, _temp_dir) = create_test_file_manager();
+        let logfile = "test_log.log".to_string();
+        let mut log_mgr = LogMgr::new(fm, logfile);
 
-            let log_record1 = vec![1, 2, 3, 4];
-            let lsn1 = log_mgr.append(log_record1.clone());
+        let log_record1 = vec![1, 2, 3, 4];
+        let lsn1 = log_mgr.append(log_record1.clone());
 
-            assert_eq!(lsn1, 1);
+        assert_eq!(lsn1, 1);
 
-            let log_record2 = vec![5, 6, 7, 8];
-            let lsn2 = log_mgr.append(log_record2.clone());
+        let log_record2 = vec![5, 6, 7, 8];
+        let lsn2 = log_mgr.append(log_record2.clone());
 
-            assert_eq!(lsn2, 2);
-        }
+        assert_eq!(lsn2, 2);
+    }
 
-        #[test]
-        fn test_log_mgr_flush() {
-            let (fm, _temp_dir) = create_test_file_manager();
-            let logfile = "test_log.log".to_string();
-            let mut log_mgr = LogMgr::new(fm, logfile);
+    #[test]
+    fn test_log_mgr_flush() {
+        let (fm, _temp_dir) = create_test_file_manager();
+        let logfile = "test_log.log".to_string();
+        let mut log_mgr = LogMgr::new(fm, logfile);
 
-            let log_record = vec![1, 2, 3, 4];
-            let lsn = log_mgr.append(log_record);
+        let log_record = vec![1, 2, 3, 4];
+        let lsn = log_mgr.append(log_record);
 
-            log_mgr.flush(lsn);
+        log_mgr.flush(lsn);
 
-            assert_eq!(log_mgr.last_save_lsn, lsn);
-        }
+        assert_eq!(log_mgr.last_save_lsn, lsn);
+    }
 
-        #[test]
-        fn test_log_mgr_append_new_block() {
-            let (fm, _temp_dir) = create_test_file_manager();
-            let logfile = "test_log.log".to_string();
-            let mut log_mgr = LogMgr::new(fm, logfile);
+    #[test]
+    fn test_log_mgr_append_new_block() {
+        let (fm, _temp_dir) = create_test_file_manager();
+        let logfile = "test_log.log".to_string();
+        let mut log_mgr = LogMgr::new(fm, logfile);
 
-            // Fill up the initial block
-            let large_record = vec![0; 350]; // Assuming block size is 400
+        // Fill up the initial block
+        let large_record = vec![0; 350]; // Assuming block size is 400
 
-            let initial_block = log_mgr.current_blk.clone();
-            log_mgr.append(large_record);
+        let initial_block = log_mgr.current_blk.clone();
+        log_mgr.append(large_record);
 
-            assert_ne!(log_mgr.current_blk, initial_block);
-        }
+        assert_ne!(log_mgr.current_blk, initial_block);
+    }
 
-        #[test]
-        fn test_main() {
-            let db = SimpleDB::new("/tmp/logtest".to_string(), 400, 8);
-            let lm = db.log_mgr();
+    #[test]
+    fn test_main() {
+        let db = SimpleDB::new("/tmp/logtest".to_string(), 400, 8);
+        let lm = db.log_mgr();
 
-            print_log_records(lm.clone(), "The initial empty log file:".to_string());
-            println!("done");
-            create_records(lm.clone(), 1, 35);
-            print_log_records(
-                lm.clone(),
-                "The log file now has these records:".to_string(),
-            );
-            create_records(lm.clone(), 36, 70);
-            lm.borrow_mut().flush(65);
-            print_log_records(
-                lm.clone(),
-                "The log file now has these records:".to_string(),
-            );
-        }
+        print_log_records(lm.clone(), "The initial empty log file:".to_string());
+        println!("done");
+        create_records(lm.clone(), 1, 35);
+        print_log_records(
+            lm.clone(),
+            "The log file now has these records:".to_string(),
+        );
+        create_records(lm.clone(), 36, 70);
+        lm.borrow_mut().flush(65);
+        print_log_records(
+            lm.clone(),
+            "The log file now has these records:".to_string(),
+        );
     }
 }
