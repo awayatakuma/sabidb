@@ -1,9 +1,13 @@
-use std::clone;
-
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct BlockId {
     file_name: String,
     blknum: i32,
+}
+
+impl PartialEq for BlockId {
+    fn eq(&self, other: &Self) -> bool {
+        self.file_name == other.file_name && self.blknum == other.blknum
+    }
 }
 
 impl BlockId {

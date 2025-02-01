@@ -12,8 +12,8 @@ pub struct LogMgr {
     logfile: String,
     logpage: Page,
     current_blk: BlockId,
-    latest_lsn: i64,
-    last_save_lsn: i64,
+    latest_lsn: i32,
+    last_save_lsn: i32,
 }
 
 impl LogMgr {
@@ -41,7 +41,7 @@ impl LogMgr {
         };
     }
 
-    pub fn flush(&mut self, lsn: i64) {
+    pub fn flush(&mut self, lsn: i32) {
         if lsn >= self.last_save_lsn {
             self.flush_internal();
         }
@@ -54,7 +54,7 @@ impl LogMgr {
         return LogIterator::new(self.fm.clone(), self.current_blk.clone());
     }
 
-    pub fn append(&mut self, logrec: Vec<u8>) -> i64 {
+    pub fn append(&mut self, logrec: Vec<u8>) -> i32 {
         let mut boundary = self.logpage.get_int(0).unwrap() as usize;
         let recsize = logrec.len();
         let bytesneeded = recsize + INTEGER_BYTES;
