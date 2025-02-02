@@ -41,14 +41,14 @@ impl BufferManager {
         }
     }
 
-    pub fn unpin(&mut self, buff: &mut Buffer) {
-        buff.unpin();
-        if !buff.is_pinned() {
+    pub fn unpin(&mut self, buff: Rc<RefCell<Buffer>>) {
+        buff.borrow_mut().unpin();
+        if !buff.borrow().is_pinned() {
             self.num_available += 1;
         }
     }
 
-    pub fn pin(&mut self, blk: BlockId) -> Option<Rc<RefCell<Buffer>>> {
+    pub fn pin(&mut self, blk: &BlockId) -> Option<Rc<RefCell<Buffer>>> {
         let timesptamp = Utc::now().timestamp_millis();
         let mut buff = self.try_to_pin(&blk);
         while buff.is_none() && !Self::waiting_too_long(timesptamp) {
@@ -56,7 +56,10 @@ impl BufferManager {
             buff = self.try_to_pin(&blk);
         }
         if buff.is_none() {
-            panic!("Buffer Abort Exception")
+            // panic!("Buffer Abort Exception")
+            println!("Buffer Abort Exception");
+            // ToDo: rewrite thi with Result type
+            return None;
         }
         buff
     }
@@ -106,5 +109,65 @@ impl BufferManager {
             }
         }
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::*;
+    use crate::server::simple_db::SimpleDB;
+
+    #[test]
+    fn test_main() {
+        let db = SimpleDB::new(&Path::new("/tmp/buffertest"), 400, 3);
+        let bm = db.buffer_manager();
+
+        let mut buffs = Vec::new();
+        buffs.push(
+            bm.borrow_mut()
+                .pin(Some(&BlockId::new("testfile".to_string(), 0)).unwrap()),
+        );
+        buffs.push(
+            bm.borrow_mut()
+                .pin(Some(&BlockId::new("testfile".to_string(), 1)).unwrap()),
+        );
+        buffs.push(
+            bm.borrow_mut()
+                .pin(Some(&BlockId::new("testfile".to_string(), 2)).unwrap()),
+        );
+        bm.borrow_mut().unpin(buffs[1].clone().unwrap());
+        buffs[1] = None;
+        buffs.push(
+            bm.borrow_mut()
+                .pin(Some(&BlockId::new("testfile".to_string(), 3)).unwrap()),
+        );
+        buffs.push(
+            bm.borrow_mut()
+                .pin(Some(&BlockId::new("testfile".to_string(), 4)).unwrap()),
+        );
+        println!("Available buffers: {}", bm.borrow().available());
+
+        println!("Attempting to pin block 3...");
+        buffs.push(
+            bm.borrow_mut()
+                .pin(Some(&BlockId::new("testfile".to_string(), 5)).unwrap()),
+        );
+        bm.borrow_mut().unpin(buffs[2].clone().unwrap());
+        buffs[2] = None;
+        buffs[5] = bm
+            .borrow_mut()
+            .pin(Some(&BlockId::new("testfile".to_string(), 3)).unwrap());
+        println!("Final Buffer Allocation:");
+        for (i, buff) in buffs.iter().enumerate() {
+            if let Some(b) = buff {
+                println!(
+                    "buff[{}] pinned to block {:#?}",
+                    i,
+                    b.borrow().block().unwrap()
+                )
+            }
+        }
     }
 }

@@ -1,23 +1,33 @@
 use std::collections::HashMap;
-use std::fs::{File, OpenOptions};
+use std::fs::{create_dir, remove_file, File, OpenOptions};
 use std::io::{self, Read, Seek, SeekFrom, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::file::block_id::BlockId;
 use crate::file::page::Page;
 
 pub struct FileManager {
     blocksize: i32,
-    db_directory: String,
+    db_directory: PathBuf,
     open_files: HashMap<String, File>,
 }
 
 impl FileManager {
-    pub fn new_from_blocksize(db_directory: String, blocksize: i32) -> Self {
+    pub fn new_from_blocksize(db_directory: &Path, blocksize: i32) -> Self {
         // TODO: need to implement to create directory and remove temp files
+        if !db_directory.exists() {
+            let _ = create_dir(db_directory);
+        }
+
+        for file in db_directory.iter() {
+            if file.to_string_lossy().starts_with("temp") {
+                let _ = remove_file(file);
+            }
+        }
+
         Self {
             blocksize,
-            db_directory,
+            db_directory: db_directory.to_path_buf(),
             open_files: HashMap::new(),
         }
     }
@@ -93,8 +103,7 @@ mod tests {
 
     fn setup() -> (FileManager, TempDir) {
         let temp_dir = TempDir::new().unwrap();
-        let db_directory = temp_dir.path().to_str().unwrap().to_string();
-        let fm = FileManager::new_from_blocksize(db_directory, 100);
+        let fm = FileManager::new_from_blocksize(temp_dir.path(), 100);
         (fm, temp_dir)
     }
 

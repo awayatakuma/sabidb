@@ -48,7 +48,7 @@ impl LogMgr {
     }
 
     pub fn iterator(&mut self) -> LogIterator {
-        // self.flush_internal();
+        self.flush_internal();
         // TO-DO: In textbook, this code is needed but I think you cannot match requirement described in p84 if this code remains.
         // So if another problem happens related to this code, I will remove the comment out.
         return LogIterator::new(self.fm.clone(), self.current_blk.clone());
@@ -87,7 +87,7 @@ impl LogMgr {
 
 #[cfg(test)]
 mod tests {
-    use std::process::Command;
+    use std::path::Path;
 
     use tempfile::TempDir;
 
@@ -98,14 +98,9 @@ mod tests {
     fn create_test_file_manager() -> (Rc<RefCell<FileManager>>, TempDir) {
         let temp_dir = TempDir::new().unwrap();
 
-        let _ = Command::new("touch")
-            .arg("test_log.log")
-            .current_dir(&temp_dir)
-            .status();
-
         (
             Rc::new(RefCell::new(FileManager::new_from_blocksize(
-                temp_dir.path().to_str().unwrap().to_string(),
+                temp_dir.path(),
                 400,
             ))),
             temp_dir,
@@ -190,7 +185,7 @@ mod tests {
         let mut log_mgr = LogMgr::new(fm, logfile);
 
         // Fill up the initial block
-        let large_record = vec![0; 350]; // Assuming block size is 400
+        let large_record = vec![0; 396]; // Assuming block size is 400
 
         let initial_block = log_mgr.current_blk.clone();
         log_mgr.append(large_record);
@@ -200,7 +195,7 @@ mod tests {
 
     #[test]
     fn test_main() {
-        let db = SimpleDB::new("/tmp/logtest".to_string(), 400, 8);
+        let db = SimpleDB::new(&Path::new("/tmp/logtest"), 400, 8);
         let lm = db.log_mgr();
 
         print_log_records(lm.clone(), "The initial empty log file:".to_string());
@@ -214,7 +209,7 @@ mod tests {
         lm.borrow_mut().flush(65);
         print_log_records(
             lm.clone(),
-            "The log file now has these records:".to_string(),
+            "the log file now has these records:".to_string(),
         );
     }
 }
