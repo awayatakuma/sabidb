@@ -1,6 +1,7 @@
 use crate::constants::INTEGER_BYTES;
 use std::{cell::RefCell, rc::Rc};
 
+#[derive(Debug)]
 pub struct Page {
     bb: Rc<RefCell<Vec<u8>>>,
 }
