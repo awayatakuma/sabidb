@@ -103,7 +103,7 @@ mod tests {
             .unwrap()
             .unwrap();
         let n = buff1.lock().unwrap().contents().get_int(80).unwrap();
-        buff1.lock().unwrap().contents().set_int(80, n + 1);
+        buff1.lock().unwrap().contents().set_int(80, n + 1).unwrap();
         // p.borrow_mut().set_string(85, &"hello".to_string());
         buff1.lock().unwrap().set_modified(1, 0);
         println!("The new value is {}", n + 1);
@@ -121,7 +121,7 @@ mod tests {
             .pin(&BlockId::new("testfile".to_string(), 1))
             .unwrap()
             .unwrap();
-        buff2.lock().unwrap().contents().set_int(80, 9999);
+        buff2.lock().unwrap().contents().set_int(80, 9999).unwrap();
         buff2.lock().unwrap().set_modified(1, 0);
     }
 
@@ -137,10 +137,11 @@ mod tests {
         b1.lock()
             .unwrap()
             .contents()
-            .set_string(pos1, &"abcdefghijklm".to_string());
+            .set_string(pos1, &"abcdefghijklm".to_string())
+            .unwrap();
         let size = Page::max_length("abcdefghijklm".to_string().len());
         let pos2 = pos1 + size;
-        b1.lock().unwrap().contents().set_int(pos2, 345);
+        b1.lock().unwrap().contents().set_int(pos2, 345).unwrap();
         b1.lock().unwrap().set_modified(1, 0);
         bm.lock().unwrap().unpin(b1).unwrap();
 

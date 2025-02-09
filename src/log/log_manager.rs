@@ -25,7 +25,7 @@ impl LogManager {
 
         let current_blk = if logsize == 0 {
             let blk = locked_fm.append(&logfile).unwrap();
-            logpage.set_int(0, locked_fm.block_size() as i32);
+            logpage.set_int(0, locked_fm.block_size() as i32)?;
             let _ = locked_fm.write(&blk, &logpage);
             blk
         } else {
@@ -69,8 +69,8 @@ impl LogManager {
         }
         let recpos = boundary - bytesneeded;
 
-        self.logpage.set_bytes(recpos, &logrec);
-        self.logpage.set_int(0, recpos as i32);
+        self.logpage.set_bytes(recpos, &logrec)?;
+        self.logpage.set_int(0, recpos as i32)?;
         self.latest_lsn += 1;
         return Ok(self.latest_lsn);
     }
@@ -78,7 +78,7 @@ impl LogManager {
     fn append_new_block(&mut self) -> Result<BlockId, String> {
         let mut locked_fm = self.fm.lock().map_err(|_| "failed to get lock")?;
         let blk = locked_fm.append(&self.logfile).unwrap();
-        self.logpage.set_int(0, locked_fm.block_size() as i32);
+        self.logpage.set_int(0, locked_fm.block_size() as i32)?;
         let _ = locked_fm.write(&blk, &self.logpage);
         Ok(blk)
     }
@@ -136,12 +136,12 @@ mod tests {
             let npos = Page::max_length(s.len());
             let b = vec![0u8; npos + INTEGER_BYTES];
             let mut p = Page::new_from_bytes(b);
-            p.set_string(0, &s);
-            p.set_int(npos, i);
+            p.set_string(0, &s).unwrap();
+            p.set_int(npos, i).unwrap();
             let _lsm = lm
                 .lock()
                 .unwrap()
-                .append(p.contents().borrow_mut().to_vec())
+                .append(p.contents().lock().unwrap().to_vec())
                 .unwrap();
         }
         println!()

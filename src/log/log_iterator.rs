@@ -32,9 +32,13 @@ impl Iterator for LogIterator {
                 Err(e) => return Some(Err(e.to_string())),
             }
         }
-        let rec = self.p.get_bytes(self.current_pos);
-        self.current_pos += INTEGER_BYTES + rec.len();
-        return Some(Ok(rec));
+        match self.p.get_bytes(self.current_pos) {
+            Ok(rec) => {
+                self.current_pos += INTEGER_BYTES + rec.len();
+                return Some(Ok(rec));
+            }
+            Err(_) => Some(Err("failed to get bytes".to_string())),
+        }
     }
 }
 
