@@ -27,6 +27,7 @@ impl fmt::Display for BufferAbortException {
 
 impl std::error::Error for BufferAbortException {}
 
+#[derive(Debug, Clone)]
 pub struct BufferManager {
     bufferpool: Vec<Arc<Mutex<Buffer>>>,
     num_available: i32,
@@ -75,9 +76,9 @@ impl BufferManager {
         &mut self,
         blk: &BlockId,
     ) -> Result<Option<Arc<Mutex<Buffer>>>, BufferAbortException> {
-        let timesptamp = Utc::now().timestamp_millis();
+        let timestamp = Utc::now().timestamp_millis();
         let mut buff = self.try_to_pin(&blk).map_err(|_| BufferAbortException)?;
-        while buff.is_none() && !Self::waiting_too_long(timesptamp) {
+        while buff.is_none() && !Self::waiting_too_long(timestamp) {
             thread::sleep(time::Duration::from_millis(MAX_TIME.try_into().unwrap()));
             buff = self.try_to_pin(&blk).map_err(|_| BufferAbortException)?;
         }

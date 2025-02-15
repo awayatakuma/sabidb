@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     buffer::buffer_manager::BufferManager, constants::LOG_FILE, file::file_manager::FileManager,
-    log::log_manager::LogManager,
+    log::log_manager::LogManager, tx::transaction::Transaction,
 };
 
 pub struct SimpleDB {
@@ -37,5 +37,12 @@ impl SimpleDB {
 
     pub fn buffer_manager(&self) -> Arc<Mutex<BufferManager>> {
         self.bm.clone()
+    }
+
+    pub fn new_tx(&self) -> Arc<Mutex<Transaction>> {
+        Arc::new(Mutex::new(
+            Transaction::new_from_managers(self.fm.clone(), self.lm.clone(), self.bm.clone())
+                .unwrap(),
+        ))
     }
 }

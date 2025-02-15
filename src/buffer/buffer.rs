@@ -40,8 +40,8 @@ impl Buffer {
         self.blk.clone()
     }
 
-    pub fn set_modified(&mut self, txmum: i32, lsn: i32) {
-        self.txnum = txmum;
+    pub fn set_modified(&mut self, txnum: i32, lsn: i32) {
+        self.txnum = txnum;
         if lsn >= 0 {
             self.lsn = lsn;
         }
@@ -106,7 +106,6 @@ mod tests {
         buff1.lock().unwrap().contents().set_int(80, n + 1).unwrap();
         // p.borrow_mut().set_string(85, &"hello".to_string());
         buff1.lock().unwrap().set_modified(1, 0);
-        println!("The new value is {}", n + 1);
         bm.unpin(buff1).unwrap();
 
         let mut buff2 = bm

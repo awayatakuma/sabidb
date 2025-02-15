@@ -91,7 +91,7 @@ impl FileManager {
 
         let f = self
             .get_file(filename)
-            .expect("cannot access to file that does not exist")
+            .ok_or("cannot access to file that does not exist")?
             .lock()
             .map_err(|_| "failed to get lock")?;
 

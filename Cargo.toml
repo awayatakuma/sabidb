@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 tempfile = "3"
 chrono = "0.4.39"
+lazy_static = "1.4.0"
 
 [lib]
 name = "simpledb"
