@@ -147,8 +147,6 @@ impl RecoveryManager {
 mod tests {
     use std::{fs, path::Path};
 
-    use tempfile::TempDir;
-
     use crate::{
         constants::INTEGER_BYTES,
         file::{block_id::BlockId, page::Page},
@@ -157,7 +155,7 @@ mod tests {
 
     #[test]
     fn test_recovery_manager_1() {
-        fs::remove_dir("/tmp/recoverytest").unwrap();
+        let _ = fs::remove_dir_all("/tmp/recoverytest");
         let db = SimpleDB::new(Path::new("/tmp/recoverytest"), 400, 8);
         let fm = db.file_manager();
         let bm = db.buffer_manager();
