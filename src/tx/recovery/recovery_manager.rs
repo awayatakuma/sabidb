@@ -145,7 +145,9 @@ impl RecoveryManager {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::{fs, path::Path};
+
+    use tempfile::TempDir;
 
     use crate::{
         constants::INTEGER_BYTES,
@@ -154,139 +156,146 @@ mod tests {
     };
 
     #[test]
-    fn test_recovery_manager() {
-        let db = SimpleDB::new(&Path::new("/tmp/buffertest"), 400, 8);
+    fn test_recovery_manager_1() {
+        fs::remove_dir("/tmp/recoverytest").unwrap();
+        let db = SimpleDB::new(Path::new("/tmp/recoverytest"), 400, 8);
         let fm = db.file_manager();
         let bm = db.buffer_manager();
         let blk0 = BlockId::new("testfile".to_string(), 0);
         let blk1 = BlockId::new("testfile".to_string(), 1);
 
-        if fm.lock().unwrap().len(&"testfile".to_string()).unwrap() == 0 {
-            // initialize
-            let tx1 = db.new_tx();
-            let tx2 = db.new_tx();
-            tx1.lock().unwrap().pin(&blk0).unwrap();
-            tx2.lock().unwrap().pin(&blk1).unwrap();
-            let mut pos = 0;
-            for _ in 0..6 {
-                tx1.lock()
-                    .unwrap()
-                    .set_int(&blk0, pos, pos as i32, false)
-                    .unwrap();
-                tx2.lock()
-                    .unwrap()
-                    .set_int(&blk1, pos, pos as i32, false)
-                    .unwrap();
-                pos += INTEGER_BYTES;
-            }
+        // initialize
+        let tx1 = db.new_tx();
+        let tx2 = db.new_tx();
+        tx1.lock().unwrap().pin(&blk0).unwrap();
+        tx2.lock().unwrap().pin(&blk1).unwrap();
+        let mut pos = 0;
+        for _ in 0..6 {
             tx1.lock()
                 .unwrap()
-                .set_string(&blk0, 30, "abc".to_string(), false)
+                .set_int(&blk0, pos, pos as i32, false)
                 .unwrap();
             tx2.lock()
                 .unwrap()
-                .set_string(&blk1, 30, "def".to_string(), false)
+                .set_int(&blk1, pos, pos as i32, false)
                 .unwrap();
-            tx1.lock().unwrap().commit().unwrap();
-            tx2.lock().unwrap().commit().unwrap();
+            pos += INTEGER_BYTES;
+        }
+        tx1.lock()
+            .unwrap()
+            .set_string(&blk0, 30, "abc".to_string(), false)
+            .unwrap();
+        tx2.lock()
+            .unwrap()
+            .set_string(&blk1, 30, "def".to_string(), false)
+            .unwrap();
+        tx1.lock().unwrap().commit().unwrap();
+        tx2.lock().unwrap().commit().unwrap();
 
-            // assert
-            println!("After initialization");
-            let mut p0 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
-            let mut p1 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
-            fm.lock().unwrap().read(&blk0, &mut p0).unwrap();
-            fm.lock().unwrap().read(&blk1, &mut p1).unwrap();
-            let mut pos = 0;
-            for _ in 0..6 {
-                assert_eq!(p0.get_int(pos).unwrap(), pos as i32);
-                assert_eq!(p1.get_int(pos).unwrap(), pos as i32);
-                pos += INTEGER_BYTES;
-            }
-            assert_eq!(p0.get_string(30).unwrap(), "abc");
-            assert_eq!(p1.get_string(30).unwrap(), "def");
+        // assert
+        println!("After initialization");
+        let mut p0 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
+        let mut p1 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
+        fm.lock().unwrap().read(&blk0, &mut p0).unwrap();
+        fm.lock().unwrap().read(&blk1, &mut p1).unwrap();
+        let mut pos = 0;
+        for _ in 0..6 {
+            assert_eq!(p0.get_int(pos).unwrap(), pos as i32);
+            assert_eq!(p1.get_int(pos).unwrap(), pos as i32);
+            pos += INTEGER_BYTES;
+        }
+        assert_eq!(p0.get_string(30).unwrap(), "abc");
+        assert_eq!(p1.get_string(30).unwrap(), "def");
 
-            // modify
-            let tx3 = db.new_tx();
-            let tx4 = db.new_tx();
-            tx3.lock().unwrap().pin(&blk0).unwrap();
-            tx4.lock().unwrap().pin(&blk1).unwrap();
-            let mut pos = 0;
-            for _ in 0..6 {
-                tx3.lock()
-                    .unwrap()
-                    .set_int(&blk0, pos, pos as i32 + 100, true)
-                    .unwrap();
-                tx4.lock()
-                    .unwrap()
-                    .set_int(&blk1, pos, pos as i32 + 100, true)
-                    .unwrap();
-                pos += INTEGER_BYTES;
-            }
+        // modify
+        let tx3 = db.new_tx();
+        let tx4 = db.new_tx();
+        tx3.lock().unwrap().pin(&blk0).unwrap();
+        tx4.lock().unwrap().pin(&blk1).unwrap();
+        let mut pos = 0;
+        for _ in 0..6 {
             tx3.lock()
                 .unwrap()
-                .set_string(&blk0, 30, "uvw".to_string(), true)
+                .set_int(&blk0, pos, pos as i32 + 100, true)
                 .unwrap();
             tx4.lock()
                 .unwrap()
-                .set_string(&blk1, 30, "xyz".to_string(), true)
+                .set_int(&blk1, pos, pos as i32 + 100, true)
                 .unwrap();
-            bm.lock().unwrap().flush_all(3).unwrap();
-            bm.lock().unwrap().flush_all(4).unwrap();
-
-            // assert
-            println!("After modification");
-            let mut p0 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
-            let mut p1 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
-            fm.lock().unwrap().read(&blk0, &mut p0).unwrap();
-            fm.lock().unwrap().read(&blk1, &mut p1).unwrap();
-            let mut pos = 0;
-            for _ in 0..6 {
-                assert_eq!(p0.get_int(pos).unwrap(), pos as i32 + 100);
-                assert_eq!(p1.get_int(pos).unwrap(), pos as i32 + 100);
-                pos += INTEGER_BYTES;
-            }
-            assert_eq!(p0.get_string(30).unwrap(), "uvw");
-            assert_eq!(p1.get_string(30).unwrap(), "xyz");
-
-            // rollback
-            tx3.lock().unwrap().rollback().unwrap();
-
-            // assert
-            println!("After rollback");
-            let mut p0 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
-            let mut p1 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
-            fm.lock().unwrap().read(&blk0, &mut p0).unwrap();
-            fm.lock().unwrap().read(&blk1, &mut p1).unwrap();
-            let mut pos = 0;
-            for _ in 0..6 {
-                assert_eq!(p0.get_int(pos).unwrap(), pos as i32);
-                assert_eq!(p1.get_int(pos).unwrap(), pos as i32 + 100);
-                pos += INTEGER_BYTES;
-            }
-            assert_eq!(p0.get_string(30).unwrap(), "abc");
-            assert_eq!(p1.get_string(30).unwrap(), "xyz");
-        } else {
-            // recovery
-            // tx3 is already rollbacked but tx4 is in neither states of commit nor rollback
-            let tx = db.new_tx();
-            tx.lock().unwrap().recover().unwrap();
-
-            // assert
-            println!("After recovery");
-            let mut p0 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
-            let mut p1 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
-            fm.lock().unwrap().read(&blk0, &mut p0).unwrap();
-            fm.lock().unwrap().read(&blk1, &mut p1).unwrap();
-            let mut pos = 0;
-            for _ in 0..6 {
-                assert_eq!(p0.get_int(pos).unwrap(), pos as i32);
-                assert_eq!(p1.get_int(pos).unwrap(), pos as i32);
-                println!("{}", p0.get_int(pos).unwrap());
-                println!("{}", p1.get_int(pos).unwrap());
-                pos += INTEGER_BYTES;
-            }
-            assert_eq!(p0.get_string(30).unwrap(), "abc");
-            assert_eq!(p1.get_string(30).unwrap(), "def");
+            pos += INTEGER_BYTES;
         }
+        tx3.lock()
+            .unwrap()
+            .set_string(&blk0, 30, "uvw".to_string(), true)
+            .unwrap();
+        tx4.lock()
+            .unwrap()
+            .set_string(&blk1, 30, "xyz".to_string(), true)
+            .unwrap();
+        bm.lock().unwrap().flush_all(3).unwrap();
+        bm.lock().unwrap().flush_all(4).unwrap();
+
+        // assert
+        println!("After modification");
+        let mut p0 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
+        let mut p1 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
+        fm.lock().unwrap().read(&blk0, &mut p0).unwrap();
+        fm.lock().unwrap().read(&blk1, &mut p1).unwrap();
+        let mut pos = 0;
+        for _ in 0..6 {
+            assert_eq!(p0.get_int(pos).unwrap(), pos as i32 + 100);
+            assert_eq!(p1.get_int(pos).unwrap(), pos as i32 + 100);
+            pos += INTEGER_BYTES;
+        }
+        assert_eq!(p0.get_string(30).unwrap(), "uvw");
+        assert_eq!(p1.get_string(30).unwrap(), "xyz");
+
+        // rollback
+        tx3.lock().unwrap().rollback().unwrap();
+
+        // assert
+        println!("After rollback");
+        let mut p0 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
+        let mut p1 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
+        fm.lock().unwrap().read(&blk0, &mut p0).unwrap();
+        fm.lock().unwrap().read(&blk1, &mut p1).unwrap();
+        let mut pos = 0;
+        for _ in 0..6 {
+            assert_eq!(p0.get_int(pos).unwrap(), pos as i32);
+            assert_eq!(p1.get_int(pos).unwrap(), pos as i32 + 100);
+            pos += INTEGER_BYTES;
+        }
+        assert_eq!(p0.get_string(30).unwrap(), "abc");
+        assert_eq!(p1.get_string(30).unwrap(), "xyz");
+    }
+
+    #[test]
+    fn test_recovery_manager_2() {
+        // This test should be executed after test_recovery_manager_1 because of resource dependency
+
+        let db = SimpleDB::new(Path::new("/tmp/recoverytest"), 400, 8);
+        let fm = db.file_manager();
+        let blk0 = BlockId::new("testfile".to_string(), 0);
+        let blk1 = BlockId::new("testfile".to_string(), 1);
+
+        // recovery
+        // tx3 is already rollbacked but tx4 is in neither states of commit nor rollback
+        let tx = db.new_tx();
+        tx.lock().unwrap().recover().unwrap();
+
+        // assert
+        println!("After recovery");
+        let mut p0 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
+        let mut p1 = Page::new_from_blocksize(fm.lock().unwrap().block_size() as usize);
+        fm.lock().unwrap().read(&blk0, &mut p0).unwrap();
+        fm.lock().unwrap().read(&blk1, &mut p1).unwrap();
+        let mut pos = 0;
+        for _ in 0..6 {
+            assert_eq!(p0.get_int(pos).unwrap(), pos as i32);
+            assert_eq!(p1.get_int(pos).unwrap(), pos as i32);
+            pos += INTEGER_BYTES;
+        }
+        assert_eq!(p0.get_string(30).unwrap(), "abc");
+        assert_eq!(p1.get_string(30).unwrap(), "def");
     }
 }
