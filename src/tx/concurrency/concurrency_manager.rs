@@ -58,6 +58,7 @@ impl ConcurrencyManager {
         Ok(())
     }
 
+    // This function corresponds to s_lock in LockTable in the original implementation
     fn s_lock_internal(&self, blk: &BlockId) -> Result<(), LockAbortException> {
         let timestamp = Utc::now().timestamp_millis();
 
@@ -82,6 +83,7 @@ impl ConcurrencyManager {
         return Err(From::from(LockAbortException));
     }
 
+    // This function corresponds to x_lock in LockTable in the original implementation
     fn x_lock_internal(&self, blk: &BlockId) -> Result<(), LockAbortException> {
         let timestamp = Utc::now().timestamp_millis();
 
