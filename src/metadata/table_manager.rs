@@ -9,7 +9,7 @@ use crate::{
     tx::transaction::Transaction,
 };
 
-const MAX_NAME: i32 = 16;
+pub const MAX_NAME: i32 = 16;
 
 #[derive(Debug, Clone)]
 pub struct TableManager {

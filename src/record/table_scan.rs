@@ -8,6 +8,7 @@ use crate::{
 
 use super::{layout::Layout, record_page::RecordPage, rid::RID, schema::field_type::INTEGER};
 
+#[derive(Debug, Clone)]
 pub struct TableScan {
     tx: Arc<Mutex<Transaction>>,
     layout: Arc<Mutex<Layout>>,

@@ -1,3 +1,5 @@
+use std::hash::{DefaultHasher, Hash, Hasher};
+
 #[derive(Debug, Clone)]
 pub struct Constant {
     ival: Option<i32>,
@@ -72,5 +74,11 @@ impl Constant {
     }
     pub fn as_string(&self) -> Option<String> {
         self.sval.clone()
+    }
+
+    pub fn hash_code(&self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        self.hash(&mut hasher);
+        hasher.finish()
     }
 }
