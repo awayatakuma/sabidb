@@ -151,7 +151,7 @@ mod tests {
     fn test_main() {
         // This test will take 10 secs to verify BlockAbortException
 
-        let db = SimpleDB::new(&Path::new("/tmp/buffertest"), 400, 3);
+        let db = SimpleDB::new_with_sizes(&Path::new("/tmp/buffertest"), 400, 3);
         let bm = db.buffer_manager();
 
         let mut buffs = vec![Ok(None); 6];

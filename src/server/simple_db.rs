@@ -5,8 +5,12 @@ use std::{
 
 use crate::{
     buffer::buffer_manager::BufferManager, constants::LOG_FILE, file::file_manager::FileManager,
-    log::log_manager::LogManager, tx::transaction::Transaction,
+    log::log_manager::LogManager, metadata::matadata_manager::MetadataManager,
+    tx::transaction::Transaction,
 };
+
+const BLOCK_SISE: i32 = 400;
+const BUFFER_SISE: i32 = 400;
 
 pub struct SimpleDB {
     fm: Arc<Mutex<FileManager>>,
@@ -15,7 +19,7 @@ pub struct SimpleDB {
 }
 
 impl SimpleDB {
-    pub fn new(dirname: &Path, blocksize: i32, buffsize: i32) -> Self {
+    pub fn new_with_sizes(dirname: &Path, blocksize: i32, buffsize: i32) -> Self {
         let fm = Arc::new(Mutex::new(FileManager::new_from_blocksize(
             &dirname, blocksize,
         )));
@@ -27,6 +31,24 @@ impl SimpleDB {
         ));
         Self { fm, lm, bm }
     }
+
+    pub fn new(dirname: &Path) -> Self {
+        let db = Self::new_with_sizes(dirname, BLOCK_SISE, BUFFER_SISE);
+        let tx = db.new_tx();
+        let is_new = db.fm.lock().unwrap().is_new();
+        if is_new {
+            println!("creating new database")
+        } else {
+            println!("recovering existing database")
+        }
+
+        //TODO: add planner
+        // let mdm = MetadataManager::new(is_new, tx).unwrap();
+        // let qp = BasicQueryPlanner::
+
+        db
+    }
+
     pub fn file_manager(&self) -> Arc<Mutex<FileManager>> {
         self.fm.clone()
     }

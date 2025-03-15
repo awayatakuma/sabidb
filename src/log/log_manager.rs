@@ -207,7 +207,7 @@ mod tests {
 
     #[test]
     fn test_main() {
-        let db = SimpleDB::new(&Path::new("/tmp/logtest"), 400, 8);
+        let db = SimpleDB::new_with_sizes(&Path::new("/tmp/logtest"), 400, 8);
         let lm = db.log_mgr();
 
         print_log_records(lm.clone(), "The initial empty log file:".to_string());

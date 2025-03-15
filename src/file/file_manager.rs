@@ -12,12 +12,14 @@ pub struct FileManager {
     blocksize: i32,
     db_directory: PathBuf,
     open_files: HashMap<String, Arc<Mutex<File>>>,
+    is_new: bool,
 }
 
 impl FileManager {
     pub fn new_from_blocksize(db_directory: &Path, blocksize: i32) -> Self {
-        if !db_directory.exists() {
-            let _ = create_dir(db_directory);
+        let is_new = !db_directory.exists();
+        if is_new {
+            create_dir(db_directory);
         }
 
         for file in db_directory.iter() {
@@ -30,6 +32,7 @@ impl FileManager {
             blocksize,
             db_directory: db_directory.to_path_buf(),
             open_files: HashMap::new(),
+            is_new,
         }
     }
 
@@ -101,6 +104,10 @@ impl FileManager {
             .len() as i32
             / blocksize;
         return Ok(len);
+    }
+
+    pub fn is_new(&self) -> bool {
+        self.is_new
     }
 
     pub fn block_size(&self) -> i32 {

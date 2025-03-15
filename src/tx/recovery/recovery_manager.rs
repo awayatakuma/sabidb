@@ -156,7 +156,7 @@ mod tests {
     #[test]
     fn test_recovery_manager_1() {
         let _ = fs::remove_dir_all("/tmp/recoverytest");
-        let db = SimpleDB::new(Path::new("/tmp/recoverytest"), 400, 8);
+        let db = SimpleDB::new_with_sizes(Path::new("/tmp/recoverytest"), 400, 8);
         let fm = db.file_manager();
         let bm = db.buffer_manager();
         let blk0 = BlockId::new("testfile".to_string(), 0);
@@ -271,7 +271,7 @@ mod tests {
     fn test_recovery_manager_2() {
         // This test should be executed after test_recovery_manager_1 because of resource dependency
 
-        let db = SimpleDB::new(Path::new("/tmp/recoverytest"), 400, 8);
+        let db = SimpleDB::new_with_sizes(Path::new("/tmp/recoverytest"), 400, 8);
         let fm = db.file_manager();
         let blk0 = BlockId::new("testfile".to_string(), 0);
         let blk1 = BlockId::new("testfile".to_string(), 1);

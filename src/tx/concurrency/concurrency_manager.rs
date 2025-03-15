@@ -156,7 +156,7 @@ mod tests {
     #[test]
     fn test_concurrency_manager() {
         let temp_dir = TempDir::new().unwrap();
-        let db = Arc::new(SimpleDB::new(temp_dir.path(), 400, 8));
+        let db = Arc::new(SimpleDB::new_with_sizes(temp_dir.path(), 400, 8));
 
         let db_a = db.clone();
         let db_b = db.clone();

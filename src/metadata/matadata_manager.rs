@@ -164,7 +164,7 @@ mod tests {
     #[test]
     fn test_metadata_manager() {
         let temp_dir = TempDir::new().unwrap();
-        let db = Arc::new(SimpleDB::new(temp_dir.path(), 400, 8));
+        let db = Arc::new(SimpleDB::new_with_sizes(temp_dir.path(), 400, 8));
         let tx = db.new_tx();
         let mut mdm = MetadataManager::new(true, tx.clone()).unwrap();
 

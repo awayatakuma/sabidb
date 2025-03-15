@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn test_main() {
         // This test will take 10 secs
-        let db = SimpleDB::new(&Path::new("/tmp/buffertest"), 400, 3);
+        let db = SimpleDB::new_with_sizes(&Path::new("/tmp/buffertest"), 400, 3);
         let bm = db.buffer_manager();
         let mut bm = bm.lock().unwrap();
 
@@ -126,7 +126,7 @@ mod tests {
 
     #[test]
     fn test_file_main() {
-        let db = SimpleDB::new(&Path::new("/tmp/buffertest"), 400, 8);
+        let db = SimpleDB::new_with_sizes(&Path::new("/tmp/buffertest"), 400, 8);
         let bm = db.buffer_manager();
 
         let blk = BlockId::new("testfile".to_string(), 2);
