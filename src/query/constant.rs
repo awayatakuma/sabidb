@@ -56,13 +56,13 @@ impl std::fmt::Display for Constant {
 }
 
 impl Constant {
-    pub fn mew_from_i32(ival: i32) -> Self {
+    pub fn new_from_i32(ival: i32) -> Self {
         Constant {
             ival: Some(ival),
             sval: None,
         }
     }
-    pub fn mew_from_string(sval: String) -> Self {
+    pub fn new_from_string(sval: String) -> Self {
         Constant {
             ival: None,
             sval: Some(sval),

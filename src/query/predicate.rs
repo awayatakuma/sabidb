@@ -7,6 +7,7 @@ use crate::{plan::plan::Plan, record::schema::Schema};
 
 use super::{constant::Constant, scan::Scan, term::Term};
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct Predicate {
     terms: Vec<Term>,
 }

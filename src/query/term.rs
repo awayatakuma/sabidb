@@ -10,7 +10,7 @@ use crate::{
 
 use super::{constant::Constant, expression::Expression, scan::Scan};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Term {
     lhs: Expression,
     rhs: Expression,

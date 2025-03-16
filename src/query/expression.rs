@@ -4,7 +4,7 @@ use crate::record::schema::Schema;
 
 use super::{constant::Constant, scan::Scan};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Expression {
     val: Option<Constant>,
     fldname: Option<String>,

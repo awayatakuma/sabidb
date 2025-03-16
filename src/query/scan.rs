@@ -61,7 +61,7 @@ mod tests {
 
         let s2 = TableScan::new(tx.clone(), "T".to_string(), layout1).unwrap();
 
-        let c = Constant::mew_from_i32(10);
+        let c = Constant::new_from_i32(10);
         let t = Term::new(
             Expression::new_from_fldname("A".to_string()),
             Expression::new_from_val(c),

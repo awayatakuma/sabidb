@@ -159,9 +159,9 @@ impl Scan for TableScan {
             .field_type(fldname)?
             == INTEGER
         {
-            Constant::mew_from_i32(self.get_int(fldname)?)
+            Constant::new_from_i32(self.get_int(fldname)?)
         } else {
-            Constant::mew_from_string(self.get_string(fldname)?)
+            Constant::new_from_string(self.get_string(fldname)?)
         };
         Ok(ret)
     }

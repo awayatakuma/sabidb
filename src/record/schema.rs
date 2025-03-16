@@ -70,13 +70,15 @@ impl Schema {
     }
 
     pub fn add_all(&mut self, sch: Arc<Mutex<Schema>>) -> Result<(), String> {
-        let locked_sch = sch.lock().map_err(|_| "failed to get lock")?;
-        for fldname in locked_sch
-            .fields
-            .lock()
-            .map_err(|_| "failed to get lock")?
-            .iter()
-        {
+        let fldnames = {
+            sch.lock()
+                .map_err(|_| "failed to get lock")?
+                .fields
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .clone()
+        };
+        for fldname in fldnames.iter() {
             self.add(fldname, sch.clone())?;
         }
 
