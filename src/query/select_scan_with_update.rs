@@ -1,24 +1,29 @@
-use super::{predicate::Predicate, scan::Scan, update_scan::UpdateScan};
+use super::{
+    predicate::Predicate,
+    scan::{RefScanType, Scan},
+    update_scan::UpdateScan,
+};
 
-pub struct SelectScanWithUpdate<S: UpdateScan> {
-    us: S,
+pub struct SelectScanWithUpdate {
+    us: Box<dyn UpdateScan>,
     pred: Predicate,
 }
 
-impl<S: UpdateScan> SelectScanWithUpdate<S> {
-    pub fn new(us: S, pred: Predicate) -> Self {
+impl SelectScanWithUpdate {
+    pub fn new(us: Box<dyn UpdateScan>, pred: Predicate) -> Self {
         SelectScanWithUpdate { us: us, pred }
     }
 }
 
-impl<S: UpdateScan> Scan for SelectScanWithUpdate<S> {
+impl Scan for SelectScanWithUpdate {
     fn before_first(&mut self) -> Result<(), String> {
         self.us.before_first()
     }
 
     fn next(&mut self) -> Result<bool, String> {
         while self.us.next()? {
-            if self.pred.is_satisfied(&self.us) {
+            let ref_s = RefScanType::UpdateScan(&self.us);
+            if self.pred.is_satisfied(&ref_s) {
                 return Ok(true);
             }
         }
@@ -47,7 +52,7 @@ impl<S: UpdateScan> Scan for SelectScanWithUpdate<S> {
     }
 }
 
-impl<S: UpdateScan> UpdateScan for SelectScanWithUpdate<S> {
+impl UpdateScan for SelectScanWithUpdate {
     fn set_val(&mut self, fldname: String, val: super::constant::Constant) -> Result<(), String> {
         self.us.set_val(fldname, val)
     }

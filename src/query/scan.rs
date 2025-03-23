@@ -1,4 +1,14 @@
-use super::constant::Constant;
+use super::{constant::Constant, select_scan::SelectScan, update_scan::UpdateScan};
+
+pub enum ScanType {
+    Scan(Box<dyn Scan>),
+    UpdateScan(Box<dyn UpdateScan>),
+}
+
+pub enum RefScanType<'a> {
+    Scan(&'a Box<dyn Scan>),
+    UpdateScan(&'a Box<dyn UpdateScan>),
+}
 
 pub trait Scan {
     fn before_first(&mut self) -> Result<(), String>;
@@ -69,7 +79,7 @@ mod tests {
         let pred = Predicate::new_from_term(t);
         println!("The predicate is {}", pred);
 
-        let s3 = Box::new(SelectScan::new(s2, pred));
+        let s3 = Box::new(SelectScan::new(Box::new(s2), pred));
 
         let mut s4 = ProjectScan::new(s3, vec!["B".to_string()]);
 
@@ -140,7 +150,7 @@ mod tests {
         );
         let pred = Predicate::new_from_term(t);
         println!("The predicate is {}", pred);
-        let s4 = Box::new(SelectScan::new(s3, pred));
+        let s4 = Box::new(SelectScan::new(Box::new(s3), pred));
 
         let mut s5 = ProjectScan::new(s4, vec!["B".to_string(), "D".to_string()]);
         while s5.next().unwrap() {

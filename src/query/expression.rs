@@ -2,7 +2,11 @@ use std::sync::{Arc, Mutex};
 
 use crate::record::schema::Schema;
 
-use super::{constant::Constant, scan::Scan};
+use super::{
+    constant::Constant,
+    scan::{RefScanType, Scan},
+    update_scan::UpdateScan,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Expression {
@@ -35,11 +39,16 @@ impl Expression {
         }
     }
 
-    pub fn evaluate(&self, s: &dyn Scan) -> Result<Constant, String> {
+    pub fn evaluate(&self, s: &RefScanType) -> Result<Constant, String> {
         let ret = if let Some(val) = &self.val {
             val
         } else {
-            &s.get_val(&self.fldname.as_ref().unwrap())?
+            match s {
+                RefScanType::Scan(scan) => &scan.get_val(&self.fldname.as_ref().unwrap())?,
+                RefScanType::UpdateScan(update_scan) => {
+                    &update_scan.get_val(&self.fldname.as_ref().unwrap())?
+                }
+            }
         };
 
         Ok(ret.clone())

@@ -5,7 +5,11 @@ use std::{
 
 use crate::{plan::plan::Plan, record::schema::Schema};
 
-use super::{constant::Constant, scan::Scan, term::Term};
+use super::{
+    constant::Constant,
+    scan::{RefScanType, Scan},
+    term::Term,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Predicate {
@@ -39,12 +43,12 @@ impl Predicate {
         self.terms.extend(pred.terms.iter().cloned());
     }
 
-    pub fn is_satisfied(&self, s: &dyn Scan) -> bool {
+    pub fn is_satisfied(&self, s: &RefScanType) -> bool {
         // TODO: Remove unwrap from this code
         !self.terms.iter().any(|t| !t.is_satisfied(s).unwrap())
     }
 
-    pub fn reduction_factor(&self, p: &dyn Plan) -> i32 {
+    pub fn reduction_factor(&self, p: &Box<dyn Plan>) -> i32 {
         let factor = self
             .terms
             .iter()
@@ -98,6 +102,16 @@ impl Predicate {
     pub fn equate_with_constant(&self, fldname: String) -> Option<Constant> {
         for t in &self.terms {
             if let Some(c) = t.equate_with_constant(fldname.clone()) {
+                return Some(c);
+            }
+        }
+
+        None
+    }
+
+    pub fn equate_with_field(&self, fldname: String) -> Option<String> {
+        for t in &self.terms {
+            if let Some(c) = t.equate_with_field(fldname.clone()) {
                 return Some(c);
             }
         }

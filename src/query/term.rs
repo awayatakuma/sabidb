@@ -8,7 +8,12 @@ use crate::{
     record::schema::{self, Schema},
 };
 
-use super::{constant::Constant, expression::Expression, scan::Scan};
+use super::{
+    constant::Constant,
+    expression::Expression,
+    scan::{RefScanType, Scan},
+    update_scan::UpdateScan,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Term {
@@ -27,13 +32,13 @@ impl Term {
         Term { lhs: lhs, rhs: rhs }
     }
 
-    pub fn is_satisfied(&self, s: &dyn Scan) -> Result<bool, String> {
-        let lhsval = self.lhs.evaluate(s);
-        let rhsval = self.rhs.evaluate(s);
+    pub fn is_satisfied(&self, ref_s: &RefScanType) -> Result<bool, String> {
+        let lhsval = self.lhs.evaluate(ref_s)?;
+        let rhsval = self.rhs.evaluate(ref_s)?;
         Ok(rhsval.eq(&lhsval))
     }
 
-    pub fn reduction_factor(&self, p: &dyn Plan) -> i32 {
+    pub fn reduction_factor(&self, p: &Box<dyn Plan>) -> i32 {
         if let (Some(lhs_name), Some(rhs_name)) =
             (self.lhs.as_field_name(), self.rhs.as_field_name())
         {

@@ -123,7 +123,7 @@ mod tests {
         ts2.close().unwrap();
 
         let s1 = Box::new(TableScan::new(tx.clone(), "T1".to_string(), layout1).unwrap());
-        let s2 = Box::new(TableScan::new(tx.clone(), "T1".to_string(), layout2).unwrap());
+        let s2 = Box::new(TableScan::new(tx.clone(), "T2".to_string(), layout2).unwrap());
 
         let mut s3 = ProductScan::new(s1, s2).unwrap();
         let mut count = 0;

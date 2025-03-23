@@ -1,24 +1,28 @@
-use super::{predicate::Predicate, scan::Scan};
+use super::{
+    predicate::Predicate,
+    scan::{RefScanType, Scan},
+};
 
-pub struct SelectScan<S: Scan> {
-    us: S,
+pub struct SelectScan {
+    us: Box<dyn Scan>,
     pred: Predicate,
 }
 
-impl<S: Scan> SelectScan<S> {
-    pub fn new(us: S, pred: Predicate) -> Self {
+impl SelectScan {
+    pub fn new(us: Box<dyn Scan>, pred: Predicate) -> Self {
         SelectScan { us: us, pred }
     }
 }
 
-impl<S: Scan> Scan for SelectScan<S> {
+impl Scan for SelectScan {
     fn before_first(&mut self) -> Result<(), String> {
         self.us.before_first()
     }
 
     fn next(&mut self) -> Result<bool, String> {
         while self.us.next()? {
-            if self.pred.is_satisfied(&self.us) {
+            let ref_s = RefScanType::Scan(&self.us);
+            if self.pred.is_satisfied(&ref_s) {
                 return Ok(true);
             }
         }
