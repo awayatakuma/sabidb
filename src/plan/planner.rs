@@ -81,7 +81,6 @@ mod tests {
 
     use std::{
         cell::RefCell,
-        iter::Product,
         rc::Rc,
         sync::{Arc, Mutex},
     };
@@ -94,10 +93,7 @@ mod tests {
             plan::Plan, product_plan::ProductPlan, project_plan::ProjectPlan,
             select_plan::SelectPlan, table_plan::TablePlan,
         },
-        query::{
-            constant::Constant, expression::Expression, predicate::Predicate, scan::ScanType,
-            term::Term,
-        },
+        query::{constant::Constant, expression::Expression, predicate::Predicate, term::Term},
         server::simple_db::SimpleDB,
     };
 
@@ -130,13 +126,13 @@ mod tests {
         let mut p = planner
             .create_query_planner(qry.to_string(), tx.clone())
             .unwrap();
-        if let crate::query::scan::ScanType::Scan(mut s) = p.open(false) {
-            while s.next().unwrap() {
-                println!("{}", s.get_string(&"B".to_string()).unwrap());
-                actual += 1;
-            }
-            s.close().unwrap();
+        let mut s = p.open().unwrap();
+
+        while s.next().unwrap() {
+            println!("{}", s.get_string(&"B".to_string()).unwrap());
+            actual += 1;
         }
+        s.close().unwrap();
         tx.lock().unwrap().commit().unwrap();
 
         assert_eq!(expected, actual)
@@ -175,17 +171,16 @@ mod tests {
         let mut p = planner
             .create_query_planner(qry.to_string(), tx.clone())
             .unwrap();
-        if let crate::query::scan::ScanType::Scan(mut s) = p.open(false) {
-            while s.next().unwrap() {
-                println!(
-                    "{} {}",
-                    s.get_string(&"B".to_string()).unwrap(),
-                    s.get_string(&"D".to_string()).unwrap()
-                );
-                assert_eq!(s.get_int(&"A".to_string()), s.get_int(&"C".to_string()))
-            }
-            s.close().unwrap();
+        let mut s = p.open().unwrap();
+        while s.next().unwrap() {
+            println!(
+                "{} {}",
+                s.get_string(&"B".to_string()).unwrap(),
+                s.get_string(&"D".to_string()).unwrap()
+            );
+            assert_eq!(s.get_int(&"A".to_string()), s.get_int(&"C".to_string()))
         }
+        s.close().unwrap();
         tx.lock().unwrap().commit().unwrap();
     }
 
@@ -307,12 +302,11 @@ mod tests {
         );
         print_stats(3, &p3);
         let mut cnt = 0;
-        if let ScanType::Scan(mut s) = p3.open(false) {
-            while s.next().unwrap() {
-                let _left = s.get_string(&"sname".to_string()).unwrap();
-                let _right = s.get_string(&"dname".to_string()).unwrap();
-                cnt += 1;
-            }
+        let mut s = p3.open().unwrap();
+        while s.next().unwrap() {
+            let _left = s.get_string(&"sname".to_string()).unwrap();
+            let _right = s.get_string(&"dname".to_string()).unwrap();
+            cnt += 1;
         }
         assert!(cnt == n * n);
 
@@ -325,20 +319,19 @@ mod tests {
         print_stats(4, &p4);
 
         let mut cnt = 0;
-        if let ScanType::Scan(mut s) = p4.open(false) {
-            while s.next().unwrap() {
-                let left = s.get_string(&"sname".to_string()).unwrap();
-                let right = s.get_string(&"dname".to_string()).unwrap();
-                assert_eq!(left[3..], right[3..]);
-                cnt += 1;
-            }
+        let mut s = p4.open().unwrap();
+        while s.next().unwrap() {
+            let left = s.get_string(&"sname".to_string()).unwrap();
+            let right = s.get_string(&"dname".to_string()).unwrap();
+            assert_eq!(left[3..], right[3..]);
+            cnt += 1;
         }
         assert!(cnt == n)
     }
 
     fn print_stats(n: i32, p: &Box<dyn Plan>) {
         println!("Here are the stats for plan p {}", n);
-        println!("\tR(p{}): {}", n, p.records_output());
-        println!("\tB(p{}): {}\n", n, p.blocks_accessed());
+        println!("\tR(p{}): {}", n, p.records_output().unwrap());
+        println!("\tB(p{}): {}\n", n, p.blocks_accessed().unwrap());
     }
 }

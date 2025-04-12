@@ -5,11 +5,7 @@ use std::{
 
 use crate::{plan::plan::Plan, record::schema::Schema};
 
-use super::{
-    constant::Constant,
-    scan::{RefScanType, Scan},
-    term::Term,
-};
+use super::{constant::Constant, scan::Scan, term::Term};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Predicate {
@@ -43,7 +39,7 @@ impl Predicate {
         self.terms.extend(pred.terms.iter().cloned());
     }
 
-    pub fn is_satisfied(&self, s: &RefScanType) -> bool {
+    pub fn is_satisfied(&self, s: &Box<dyn Scan>) -> bool {
         // TODO: Remove unwrap from this code
         !self.terms.iter().any(|t| !t.is_satisfied(s).unwrap())
     }
@@ -52,7 +48,7 @@ impl Predicate {
         let factor = self
             .terms
             .iter()
-            .fold(1, |factor, t| factor * t.reduction_factor(p));
+            .fold(1, |factor, t| factor * t.reduction_factor(p).unwrap());
 
         factor
     }

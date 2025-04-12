@@ -3,17 +3,9 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{
-    plan::plan::Plan,
-    record::schema::{self, Schema},
-};
+use crate::{plan::plan::Plan, record::schema::Schema};
 
-use super::{
-    constant::Constant,
-    expression::Expression,
-    scan::{RefScanType, Scan},
-    update_scan::UpdateScan,
-};
+use super::{constant::Constant, expression::Expression, scan::Scan};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Term {
@@ -32,25 +24,28 @@ impl Term {
         Term { lhs: lhs, rhs: rhs }
     }
 
-    pub fn is_satisfied(&self, ref_s: &RefScanType) -> Result<bool, String> {
-        let lhsval = self.lhs.evaluate(ref_s)?;
-        let rhsval = self.rhs.evaluate(ref_s)?;
+    pub fn is_satisfied(&self, s: &Box<dyn Scan>) -> Result<bool, String> {
+        let lhsval = self.lhs.evaluate(s)?;
+        let rhsval = self.rhs.evaluate(s)?;
         Ok(rhsval.eq(&lhsval))
     }
 
-    pub fn reduction_factor(&self, p: &Box<dyn Plan>) -> i32 {
+    pub fn reduction_factor(&self, p: &Box<dyn Plan>) -> Result<i32, String> {
         if let (Some(lhs_name), Some(rhs_name)) =
             (self.lhs.as_field_name(), self.rhs.as_field_name())
         {
-            return i32::max(p.distinct_values(lhs_name), p.distinct_values(rhs_name));
+            return Ok(i32::max(
+                p.distinct_values(lhs_name)?,
+                p.distinct_values(rhs_name)?,
+            ));
         } else if let Some(lhs_name) = self.lhs.as_field_name() {
             return p.distinct_values(lhs_name);
         } else if let Some(rhs_name) = self.rhs.as_field_name() {
             return p.distinct_values(rhs_name);
         } else if self.lhs.as_constant().eq(&self.rhs.as_constant()) {
-            return 1;
+            return Ok(1);
         }
-        i32::MAX
+        Ok(i32::MAX)
     }
 
     pub fn equate_with_constant(&self, fldname: String) -> Option<Constant> {

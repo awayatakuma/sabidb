@@ -1,6 +1,9 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{query::project_scan::ProjectScan, record::schema::Schema};
+use crate::{
+    query::{project_scan::ProjectScan, scan::Scan},
+    record::schema::Schema,
+};
 
 use super::plan::Plan;
 
@@ -10,27 +13,27 @@ pub struct ProjectPlan {
 }
 
 impl Plan for ProjectPlan {
-    fn open(&mut self, is_mutable: bool) -> crate::query::scan::ScanType {
-        let s = if let crate::query::scan::ScanType::Scan(s) = self.p.open(is_mutable) {
-            s
-        } else {
-            panic!("Unreachable")
-        };
-        crate::query::scan::ScanType::Scan(Box::new(ProjectScan::new(
+    fn open(&mut self) -> Result<Box<dyn Scan>, String> {
+        let s = self.p.open()?;
+        Ok(Box::new(ProjectScan::new(
             s,
-            self.schema.fields().lock().unwrap().clone(),
+            self.schema
+                .fields()
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .clone(),
         )))
     }
 
-    fn blocks_accessed(&self) -> i32 {
+    fn blocks_accessed(&self) -> Result<i32, String> {
         self.p.blocks_accessed()
     }
 
-    fn records_output(&self) -> i32 {
+    fn records_output(&self) -> Result<i32, String> {
         self.p.records_output()
     }
 
-    fn distinct_values(&self, fldname: String) -> i32 {
+    fn distinct_values(&self, fldname: String) -> Result<i32, String> {
         self.p.distinct_values(fldname)
     }
 

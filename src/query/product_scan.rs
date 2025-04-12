@@ -63,6 +63,10 @@ impl Scan for ProductScan {
         self.s2.close()?;
         Ok(())
     }
+
+    fn to_update_scan(&mut self) -> Result<&mut dyn super::update_scan::UpdateScan, String> {
+        Err("Unexpected downcast".to_string())
+    }
 }
 
 #[cfg(test)]

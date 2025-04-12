@@ -4,7 +4,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{query::product_scan::ProductScan, record::schema::Schema};
+use crate::{
+    query::{product_scan::ProductScan, scan::Scan},
+    record::schema::Schema,
+};
 
 use super::plan::Plan;
 
@@ -15,33 +18,22 @@ pub struct ProductPlan {
 }
 
 impl Plan for ProductPlan {
-    fn open(&mut self, is_mutable: bool) -> crate::query::scan::ScanType {
-        let s1 =
-            if let crate::query::scan::ScanType::Scan(s) = self.p1.borrow_mut().open(is_mutable) {
-                s
-            } else {
-                panic!("Unreachable")
-            };
-        let s2 =
-            if let crate::query::scan::ScanType::Scan(s) = self.p2.borrow_mut().open(is_mutable) {
-                s
-            } else {
-                panic!("Unreachable")
-            };
-
-        crate::query::scan::ScanType::Scan(Box::new(ProductScan::new(s1, s2).unwrap()))
+    fn open(&mut self) -> Result<Box<dyn Scan>, String> {
+        let s1 = self.p1.borrow_mut().open()?;
+        let s2 = self.p2.borrow_mut().open()?;
+        Ok(Box::new(ProductScan::new(s1, s2)?))
     }
 
-    fn blocks_accessed(&self) -> i32 {
-        self.p1.borrow().blocks_accessed()
-            + (self.p1.borrow().records_output() * self.p2.borrow().blocks_accessed())
+    fn blocks_accessed(&self) -> Result<i32, String> {
+        Ok(self.p1.borrow().blocks_accessed()?
+            + (self.p1.borrow().records_output()? * self.p2.borrow().blocks_accessed()?))
     }
 
-    fn records_output(&self) -> i32 {
-        self.p1.borrow().records_output() * self.p2.borrow().records_output()
+    fn records_output(&self) -> Result<i32, String> {
+        Ok(self.p1.borrow().records_output()? * self.p2.borrow().records_output()?)
     }
 
-    fn distinct_values(&self, fldname: String) -> i32 {
+    fn distinct_values(&self, fldname: String) -> Result<i32, String> {
         if self.schema().has_field(&fldname).unwrap() {
             self.p1.borrow().distinct_values(fldname)
         } else {

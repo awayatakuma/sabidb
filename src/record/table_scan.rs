@@ -185,6 +185,10 @@ impl Scan for TableScan {
             .unpin(&self.rp.lock().map_err(|_| "failed to get lock")?.block())?;
         Ok(())
     }
+
+    fn to_update_scan(&mut self) -> Result<&mut dyn UpdateScan, String> {
+        Ok(self)
+    }
 }
 
 impl UpdateScan for TableScan {
@@ -284,6 +288,9 @@ impl UpdateScan for TableScan {
         self.current_slot = rid.slot();
 
         Ok(())
+    }
+    fn to_scan(&mut self) -> Result<&mut dyn Scan, String> {
+        Ok(self)
     }
 }
 

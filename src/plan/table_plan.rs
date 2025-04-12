@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     metadata::{matadata_manager::MetadataManager, stat_info::StatInfo},
+    query::scan::Scan,
     record::{layout::Layout, table_scan::TableScan},
     tx::transaction::Transaction,
 };
@@ -16,28 +17,22 @@ pub struct TablePlan {
 }
 
 impl Plan for TablePlan {
-    fn open(&mut self, is_mutable: bool) -> crate::query::scan::ScanType {
-        if is_mutable {
-            crate::query::scan::ScanType::UpdateScan(Box::new(
-                TableScan::new(self.tx.clone(), self.tblname.clone(), self.layout.clone()).unwrap(),
-            ))
-        } else {
-            crate::query::scan::ScanType::Scan(Box::new(
-                TableScan::new(self.tx.clone(), self.tblname.clone(), self.layout.clone()).unwrap(),
-            ))
-        }
+    fn open(&mut self) -> Result<Box<dyn Scan>, String> {
+        Ok(Box::new(
+            TableScan::new(self.tx.clone(), self.tblname.clone(), self.layout.clone()).unwrap(),
+        ))
     }
 
-    fn blocks_accessed(&self) -> i32 {
-        self.si.blocks_accessed()
+    fn blocks_accessed(&self) -> Result<i32, String> {
+        Ok(self.si.blocks_accessed())
     }
 
-    fn records_output(&self) -> i32 {
-        self.si.records_output()
+    fn records_output(&self) -> Result<i32, String> {
+        Ok(self.si.records_output())
     }
 
-    fn distinct_values(&self, fldname: String) -> i32 {
-        self.si.distinct_values(fldname)
+    fn distinct_values(&self, fldname: String) -> Result<i32, String> {
+        Ok(self.si.distinct_values(fldname))
     }
 
     fn schema(&self) -> crate::record::schema::Schema {
@@ -68,11 +63,6 @@ impl TablePlan {
             layout: layout,
             si: si,
         })
-    }
-    pub fn open_as_update_scan(&mut self) -> crate::query::scan::ScanType {
-        crate::query::scan::ScanType::UpdateScan(Box::new(
-            TableScan::new(self.tx.clone(), self.tblname.clone(), self.layout.clone()).unwrap(),
-        ))
     }
 }
 

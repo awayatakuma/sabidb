@@ -1,14 +1,4 @@
-use super::{constant::Constant, select_scan::SelectScan, update_scan::UpdateScan};
-
-pub enum ScanType {
-    Scan(Box<dyn Scan>),
-    UpdateScan(Box<dyn UpdateScan>),
-}
-
-pub enum RefScanType<'a> {
-    Scan(&'a Box<dyn Scan>),
-    UpdateScan(&'a Box<dyn UpdateScan>),
-}
+use super::{constant::Constant, update_scan::UpdateScan};
 
 pub trait Scan {
     fn before_first(&mut self) -> Result<(), String>;
@@ -18,6 +8,8 @@ pub trait Scan {
     fn get_val(&self, fldname: &String) -> Result<Constant, String>;
     fn has_field(&self, fldname: &String) -> Result<bool, String>;
     fn close(&mut self) -> Result<(), String>;
+
+    fn to_update_scan(&mut self) -> Result<&mut dyn UpdateScan, String>;
 }
 
 #[cfg(test)]

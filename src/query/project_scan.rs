@@ -51,4 +51,8 @@ impl Scan for ProjectScan {
     fn close(&mut self) -> Result<(), String> {
         self.s.close()
     }
+
+    fn to_update_scan(&mut self) -> Result<&mut dyn super::update_scan::UpdateScan, String> {
+        Err("Unexpected downcast".to_string())
+    }
 }

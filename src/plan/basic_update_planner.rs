@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{metadata::matadata_manager::MetadataManager, query::scan::ScanType};
+use crate::metadata::matadata_manager::MetadataManager;
 
 use super::{
     plan::Plan, select_plan::SelectPlan, table_plan::TablePlan, update_planner::UpdatePlanner,
@@ -19,15 +19,14 @@ impl UpdatePlanner for BasicUpdatePlanner {
     ) -> Result<i32, String> {
         let mut p = TablePlan::new(tx, data.table_name(), self.mdm.clone())?;
 
-        if let ScanType::UpdateScan(mut us) = p.open_as_update_scan() {
-            us.insert()?;
-            for (fldname, val) in data.fields().iter().zip(data.vals().iter()) {
-                us.set_val(fldname.clone(), val.clone())?;
-            }
-            us.close().unwrap();
-        } else {
-            panic!("Unreachale!!")
+        let mut s = p.open()?;
+        let us = s.to_update_scan()?;
+
+        us.insert()?;
+        for (fldname, val) in data.fields().iter().zip(data.vals().iter()) {
+            us.set_val(fldname.clone(), val.clone())?;
         }
+        us.close().unwrap();
 
         Ok(1)
     }
@@ -40,15 +39,14 @@ impl UpdatePlanner for BasicUpdatePlanner {
         let p: Box<dyn Plan> = Box::new(TablePlan::new(tx, data.table_name(), self.mdm.clone())?);
         let mut sp = SelectPlan::new(p, data.pred());
         let mut count = 0;
-        if let ScanType::UpdateScan(mut us) = sp.open(true) {
-            while us.next()? {
-                us.delete()?;
-                count += 1;
-            }
-            us.close().unwrap();
-        } else {
-            panic!("Unreachale!!")
+
+        let mut s = sp.open()?;
+
+        while s.next()? {
+            s.to_update_scan()?.delete()?;
+            count += 1;
         }
+        s.close().unwrap();
 
         Ok(count)
     }
@@ -60,18 +58,15 @@ impl UpdatePlanner for BasicUpdatePlanner {
     ) -> Result<i32, String> {
         let p = Box::new(TablePlan::new(tx, data.table_name(), self.mdm.clone()).unwrap());
         let mut sp = SelectPlan::new(p, data.pred());
+        let mut s = sp.open()?;
 
         let mut count = 0;
-        if let ScanType::UpdateScan(mut us) = sp.open(true) {
-            while us.next()? {
-                let val = data
-                    .new_val()
-                    .evaluate(&crate::query::scan::RefScanType::UpdateScan(&us))?;
-                us.set_val(data.target_field(), val)?;
-                count += 1;
-            }
-            us.close()?;
+        while s.next()? {
+            let val = data.new_val().evaluate(&s)?;
+            s.to_update_scan()?.set_val(data.target_field(), val)?;
+            count += 1;
         }
+        s.close()?;
 
         Ok(count)
     }

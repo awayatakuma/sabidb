@@ -1,5 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
+use crate::query::scan::Scan;
+
 use super::{plan::Plan, product_plan::ProductPlan};
 
 pub struct OptimizedProductPlan {
@@ -7,19 +9,19 @@ pub struct OptimizedProductPlan {
 }
 
 impl Plan for OptimizedProductPlan {
-    fn open(&mut self, is_mutable: bool) -> crate::query::scan::ScanType {
-        self.bestplan.open(false)
+    fn open(&mut self) -> Result<Box<dyn Scan>, String> {
+        self.bestplan.open()
     }
 
-    fn blocks_accessed(&self) -> i32 {
+    fn blocks_accessed(&self) -> Result<i32, String> {
         self.bestplan.blocks_accessed()
     }
 
-    fn records_output(&self) -> i32 {
+    fn records_output(&self) -> Result<i32, String> {
         self.bestplan.records_output()
     }
 
-    fn distinct_values(&self, fldname: String) -> i32 {
+    fn distinct_values(&self, fldname: String) -> Result<i32, String> {
         self.bestplan.distinct_values(fldname)
     }
 
