@@ -17,10 +17,11 @@ impl UpdatePlanner for BasicUpdatePlanner {
         data: crate::parse::insert_data::InsertData,
         tx: Arc<Mutex<crate::tx::transaction::Transaction>>,
     ) -> Result<i32, String> {
-        let mut p = TablePlan::new(tx, data.table_name(), self.mdm.clone())?;
+        let p = TablePlan::new(tx, data.table_name(), self.mdm.clone())?;
 
-        let mut s = p.open()?;
-        let us = s.to_update_scan()?;
+        let s = p.open()?;
+        let mut binding = s.lock().map_err(|_| "failed to get lock")?;
+        let us = binding.to_update_scan()?;
 
         us.insert()?;
         for (fldname, val) in data.fields().iter().zip(data.vals().iter()) {
@@ -36,17 +37,24 @@ impl UpdatePlanner for BasicUpdatePlanner {
         data: crate::parse::delete_data::DeleteData,
         tx: Arc<Mutex<crate::tx::transaction::Transaction>>,
     ) -> Result<i32, String> {
-        let p: Box<dyn Plan> = Box::new(TablePlan::new(tx, data.table_name(), self.mdm.clone())?);
-        let mut sp = SelectPlan::new(p, data.pred());
+        let p = Arc::new(Mutex::new(TablePlan::new(
+            tx,
+            data.table_name(),
+            self.mdm.clone(),
+        )?));
+        let sp = SelectPlan::new(p, data.pred());
         let mut count = 0;
 
-        let mut s = sp.open()?;
+        let s = sp.open()?;
 
-        while s.next()? {
-            s.to_update_scan()?.delete()?;
+        while s.lock().map_err(|_| "failed to get lock")?.next()? {
+            s.lock()
+                .map_err(|_| "failed to get lock")?
+                .to_update_scan()?
+                .delete()?;
             count += 1;
         }
-        s.close().unwrap();
+        s.lock().map_err(|_| "failed to get lock")?.close().unwrap();
 
         Ok(count)
     }
@@ -56,17 +64,24 @@ impl UpdatePlanner for BasicUpdatePlanner {
         data: crate::parse::modify_data::ModifyData,
         tx: Arc<Mutex<crate::tx::transaction::Transaction>>,
     ) -> Result<i32, String> {
-        let p = Box::new(TablePlan::new(tx, data.table_name(), self.mdm.clone()).unwrap());
-        let mut sp = SelectPlan::new(p, data.pred());
-        let mut s = sp.open()?;
+        let p = Arc::new(Mutex::new(TablePlan::new(
+            tx,
+            data.table_name(),
+            self.mdm.clone(),
+        )?));
+        let sp = SelectPlan::new(p, data.pred());
+        let s = sp.open()?;
 
         let mut count = 0;
-        while s.next()? {
-            let val = data.new_val().evaluate(&s)?;
-            s.to_update_scan()?.set_val(data.target_field(), val)?;
+        while s.lock().map_err(|_| "failed to get lock")?.next()? {
+            let val = data.new_val().evaluate(s.clone())?;
+            s.lock()
+                .map_err(|_| "failed to get lock")?
+                .to_update_scan()?
+                .set_val(data.target_field(), val)?;
             count += 1;
         }
-        s.close()?;
+        s.lock().map_err(|_| "failed to get lock")?.close()?;
 
         Ok(count)
     }

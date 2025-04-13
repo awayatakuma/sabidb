@@ -47,20 +47,20 @@ impl std::fmt::Display for SetStringRecord {
 
 impl SetStringRecord {
     pub fn new_from_page(p: Page) -> Result<Self, String> {
-        let tpos = INTEGER_BYTES;
+        let tpos = INTEGER_BYTES as usize;
         let txnum = p.get_int(tpos)?;
 
-        let fpos = tpos + INTEGER_BYTES;
+        let fpos = tpos + INTEGER_BYTES as usize;
         let filename = p.get_string(fpos)?;
 
         let bpos = fpos + Page::max_length(filename.len());
         let blknum = p.get_int(bpos)?;
         let blk = BlockId::new(filename, blknum);
 
-        let opos = bpos + INTEGER_BYTES;
+        let opos = bpos + INTEGER_BYTES as usize;
         let offset = p.get_int(opos)? as usize;
 
-        let vpos = opos + INTEGER_BYTES;
+        let vpos = opos + INTEGER_BYTES as usize;
         let val = p.get_string(vpos)?;
 
         Ok(Self {
@@ -78,11 +78,11 @@ impl SetStringRecord {
         offset: i32,
         val: String,
     ) -> Result<i32, String> {
-        let tpos = INTEGER_BYTES;
-        let fpos = tpos + INTEGER_BYTES;
+        let tpos = INTEGER_BYTES as usize;
+        let fpos = tpos + INTEGER_BYTES as usize;
         let bpos = fpos + Page::max_length(blk.file_name().len());
-        let opos = bpos + INTEGER_BYTES;
-        let vpos = opos + INTEGER_BYTES;
+        let opos = bpos + INTEGER_BYTES as usize;
+        let vpos = opos + INTEGER_BYTES as usize;
         let reclen = vpos + Page::max_length(val.len());
 
         let mut p = Page::new_from_blocksize(reclen);

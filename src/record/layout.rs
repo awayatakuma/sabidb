@@ -29,7 +29,7 @@ impl Layout {
 
     pub fn new_from_schema(schema: Arc<Mutex<Schema>>) -> Result<Self, String> {
         let mut offsets = HashMap::<String, usize>::new();
-        let mut pos = INTEGER_BYTES;
+        let mut pos = INTEGER_BYTES as usize;
 
         let binding = schema.lock().map_err(|_| "failed to get lock")?.fields();
         let binding = binding.lock().map_err(|_| "failed to get lock")?;
@@ -70,7 +70,7 @@ impl Layout {
         let schema = schema.lock().map_err(|_| "failed to get lock")?;
         let field_type = schema.field_type(fldname)?;
         match field_type {
-            field_type::INTEGER => Ok(INTEGER_BYTES),
+            field_type::INTEGER => Ok(INTEGER_BYTES as usize),
             field_type::VARCHAR => Ok(Page::max_length(schema.length(fldname)? as usize)),
             _ => panic!("unreachable!!"),
         }

@@ -34,14 +34,14 @@ impl std::fmt::Display for CommitRecord {
 
 impl CommitRecord {
     pub fn new_from_page(p: Page) -> Result<Self, String> {
-        let tpos = INTEGER_BYTES;
+        let tpos = INTEGER_BYTES as usize;
         let txnum = p.get_int(tpos)?;
         Ok(CommitRecord { txnum })
     }
     pub fn write_to_log(lm: Arc<Mutex<LogManager>>, txnum: i32) -> Result<i32, String> {
-        let mut p = Page::new_from_blocksize(2 * INTEGER_BYTES);
+        let mut p = Page::new_from_blocksize(2 * INTEGER_BYTES as usize);
         p.set_int(0, log_record::COMMIT)?;
-        p.set_int(INTEGER_BYTES, txnum)?;
+        p.set_int(INTEGER_BYTES as usize, txnum)?;
         lm.lock().map_err(|_| "failed to get lock")?.append(
             p.contents()
                 .lock()

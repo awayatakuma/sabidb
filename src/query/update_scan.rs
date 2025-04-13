@@ -11,5 +11,5 @@ pub trait UpdateScan: Scan {
     fn get_rid(&mut self) -> Result<RID, String>;
     fn move_to_rid(&mut self, rid: RID) -> Result<(), String>;
 
-    fn to_scan(&mut self) -> Result<&mut dyn Scan, String>;
+    fn to_scan(&mut self) -> Result<&dyn Scan, String>;
 }

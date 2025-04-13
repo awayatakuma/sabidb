@@ -34,7 +34,7 @@ impl Iterator for LogIterator {
         }
         match self.p.get_bytes(self.current_pos) {
             Ok(rec) => {
-                self.current_pos += INTEGER_BYTES + rec.len();
+                self.current_pos += INTEGER_BYTES as usize + rec.len();
                 return Some(Ok(rec));
             }
             Err(_) => Some(Err("failed to get bytes".to_string())),

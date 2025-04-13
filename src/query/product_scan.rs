@@ -1,12 +1,14 @@
+use std::sync::{Arc, Mutex};
+
 use super::scan::Scan;
 
 pub struct ProductScan {
-    s1: Box<dyn Scan>,
-    s2: Box<dyn Scan>,
+    s1: Arc<Mutex<dyn Scan>>,
+    s2: Arc<Mutex<dyn Scan>>,
 }
 
 impl ProductScan {
-    pub fn new(s1: Box<dyn Scan>, s2: Box<dyn Scan>) -> Result<Self, String> {
+    pub fn new(s1: Arc<Mutex<dyn Scan>>, s2: Arc<Mutex<dyn Scan>>) -> Result<Self, String> {
         let mut ps = ProductScan { s1: s1, s2: s2 };
         ps.before_first()?;
         Ok(ps)
@@ -15,56 +17,118 @@ impl ProductScan {
 
 impl Scan for ProductScan {
     fn before_first(&mut self) -> Result<(), String> {
-        self.s1.before_first()?;
-        self.s1.next()?;
-        self.s2.before_first()?;
+        self.s1
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .before_first()?;
+        self.s1.lock().map_err(|_| "failed to get lock")?.next()?;
+        self.s2
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .before_first()?;
         Ok(())
     }
 
     fn next(&mut self) -> Result<bool, String> {
-        if self.s2.next()? {
+        if self.s2.lock().map_err(|_| "failed to get lock")?.next()? {
             return Ok(true);
         } else {
-            self.s2.before_first()?;
-            return Ok(self.s1.next()? && self.s2.next()?);
+            self.s2
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .before_first()?;
+            return Ok(self.s2.lock().map_err(|_| "failed to get lock")?.next()?
+                && self.s1.lock().map_err(|_| "failed to get lock")?.next()?);
         }
     }
 
     fn get_int(&self, fldname: &String) -> Result<i32, String> {
-        if self.s1.has_field(fldname)? {
-            return self.s1.get_int(fldname);
+        if self
+            .s1
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .has_field(fldname)?
+        {
+            return self
+                .s1
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_int(fldname);
         } else {
-            return self.s2.get_int(fldname);
+            return self
+                .s2
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_int(fldname);
         }
     }
 
     fn get_string(&self, fldname: &String) -> Result<String, String> {
-        if self.s1.has_field(fldname)? {
-            return self.s1.get_string(fldname);
+        if self
+            .s1
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .has_field(fldname)?
+        {
+            return self
+                .s1
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_string(fldname);
         } else {
-            return self.s2.get_string(fldname);
+            return self
+                .s2
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_string(fldname);
         }
     }
 
     fn get_val(&self, fldname: &String) -> Result<super::constant::Constant, String> {
-        if self.s1.has_field(fldname)? {
-            return self.s1.get_val(fldname);
+        if self
+            .s1
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .has_field(fldname)?
+        {
+            return self
+                .s1
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_val(fldname);
         } else {
-            return self.s2.get_val(fldname);
+            return self
+                .s2
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_val(fldname);
         }
     }
 
     fn has_field(&self, fldname: &String) -> Result<bool, String> {
-        Ok(self.s1.has_field(fldname)? || self.s2.has_field(fldname)?)
+        Ok(self
+            .s1
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .has_field(fldname)?
+            || self
+                .s2
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .has_field(fldname)?)
     }
 
     fn close(&mut self) -> Result<(), String> {
-        self.s1.close()?;
-        self.s2.close()?;
+        self.s1.lock().map_err(|_| "failed to get lock")?.close()?;
+        self.s2.lock().map_err(|_| "failed to get lock")?.close()?;
         Ok(())
     }
 
     fn to_update_scan(&mut self) -> Result<&mut dyn super::update_scan::UpdateScan, String> {
+        Err("Unexpected downcast".to_string())
+    }
+
+    fn as_table_scan(&mut self) -> Result<&mut crate::record::table_scan::TableScan, String> {
         Err("Unexpected downcast".to_string())
     }
 }
@@ -126,8 +190,12 @@ mod tests {
         }
         ts2.close().unwrap();
 
-        let s1 = Box::new(TableScan::new(tx.clone(), "T1".to_string(), layout1).unwrap());
-        let s2 = Box::new(TableScan::new(tx.clone(), "T2".to_string(), layout2).unwrap());
+        let s1 = Arc::new(Mutex::new(
+            TableScan::new(tx.clone(), "T1".to_string(), layout1).unwrap(),
+        ));
+        let s2 = Arc::new(Mutex::new(
+            TableScan::new(tx.clone(), "T2".to_string(), layout2).unwrap(),
+        ));
 
         let mut s3 = ProductScan::new(s1, s2).unwrap();
         let mut count = 0;

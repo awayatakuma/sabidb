@@ -177,7 +177,7 @@ mod tests {
                 .unwrap()
                 .set_int(&blk1, pos, pos as i32, false)
                 .unwrap();
-            pos += INTEGER_BYTES;
+            pos += INTEGER_BYTES as usize;
         }
         tx1.lock()
             .unwrap()
@@ -200,7 +200,7 @@ mod tests {
         for _ in 0..6 {
             assert_eq!(p0.get_int(pos).unwrap(), pos as i32);
             assert_eq!(p1.get_int(pos).unwrap(), pos as i32);
-            pos += INTEGER_BYTES;
+            pos += INTEGER_BYTES as usize;
         }
         assert_eq!(p0.get_string(30).unwrap(), "abc");
         assert_eq!(p1.get_string(30).unwrap(), "def");
@@ -220,7 +220,7 @@ mod tests {
                 .unwrap()
                 .set_int(&blk1, pos, pos as i32 + 100, true)
                 .unwrap();
-            pos += INTEGER_BYTES;
+            pos += INTEGER_BYTES as usize;
         }
         tx3.lock()
             .unwrap()
@@ -243,7 +243,7 @@ mod tests {
         for _ in 0..6 {
             assert_eq!(p0.get_int(pos).unwrap(), pos as i32 + 100);
             assert_eq!(p1.get_int(pos).unwrap(), pos as i32 + 100);
-            pos += INTEGER_BYTES;
+            pos += INTEGER_BYTES as usize;
         }
         assert_eq!(p0.get_string(30).unwrap(), "uvw");
         assert_eq!(p1.get_string(30).unwrap(), "xyz");
@@ -261,7 +261,7 @@ mod tests {
         for _ in 0..6 {
             assert_eq!(p0.get_int(pos).unwrap(), pos as i32);
             assert_eq!(p1.get_int(pos).unwrap(), pos as i32 + 100);
-            pos += INTEGER_BYTES;
+            pos += INTEGER_BYTES as usize;
         }
         assert_eq!(p0.get_string(30).unwrap(), "abc");
         assert_eq!(p1.get_string(30).unwrap(), "xyz");
@@ -291,7 +291,7 @@ mod tests {
         for _ in 0..6 {
             assert_eq!(p0.get_int(pos).unwrap(), pos as i32);
             assert_eq!(p1.get_int(pos).unwrap(), pos as i32);
-            pos += INTEGER_BYTES;
+            pos += INTEGER_BYTES as usize;
         }
         assert_eq!(p0.get_string(30).unwrap(), "abc");
         assert_eq!(p1.get_string(30).unwrap(), "def");

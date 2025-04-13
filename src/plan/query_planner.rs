@@ -9,5 +9,5 @@ pub trait QueryPlanner: Sync + Send {
         &mut self,
         data: QueryData,
         tx: Arc<Mutex<Transaction>>,
-    ) -> Result<Box<dyn Plan>, String>;
+    ) -> Result<Arc<Mutex<dyn Plan>>, String>;
 }

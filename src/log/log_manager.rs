@@ -61,8 +61,8 @@ impl LogManager {
     pub fn append(&mut self, logrec: Vec<u8>) -> Result<i32, String> {
         let mut boundary = self.logpage.get_int(0).unwrap() as usize;
         let recsize = logrec.len();
-        let bytesneeded = recsize + INTEGER_BYTES;
-        if boundary < bytesneeded + INTEGER_BYTES {
+        let bytesneeded = recsize + INTEGER_BYTES as usize;
+        if boundary < bytesneeded + INTEGER_BYTES as usize {
             self.flush_internal()?;
             self.current_blk = self.append_new_block()?;
             boundary = self.logpage.get_int(0).unwrap() as usize;
@@ -134,7 +134,7 @@ mod tests {
         for i in start..=end {
             let s = format!("{}{}", "record".to_string(), i.to_string());
             let npos = Page::max_length(s.len());
-            let b = vec![0u8; npos + INTEGER_BYTES];
+            let b = vec![0u8; npos + INTEGER_BYTES as usize];
             let mut p = Page::new_from_bytes(b);
             p.set_string(0, &s).unwrap();
             p.set_int(npos, i).unwrap();

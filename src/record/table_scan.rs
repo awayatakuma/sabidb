@@ -189,6 +189,10 @@ impl Scan for TableScan {
     fn to_update_scan(&mut self) -> Result<&mut dyn UpdateScan, String> {
         Ok(self)
     }
+
+    fn as_table_scan(&mut self) -> Result<&mut TableScan, String> {
+        Ok(self)
+    }
 }
 
 impl UpdateScan for TableScan {
@@ -289,7 +293,8 @@ impl UpdateScan for TableScan {
 
         Ok(())
     }
-    fn to_scan(&mut self) -> Result<&mut dyn Scan, String> {
+
+    fn to_scan(&mut self) -> Result<&dyn Scan, String> {
         Ok(self)
     }
 }

@@ -1,12 +1,14 @@
+use std::sync::{Arc, Mutex};
+
 use super::scan::Scan;
 
 pub struct ProjectScan {
-    s: Box<dyn Scan>,
+    s: Arc<Mutex<dyn Scan>>,
     fieldlist: Vec<String>,
 }
 
 impl ProjectScan {
-    pub fn new(s: Box<dyn Scan>, fieldlist: Vec<String>) -> Self {
+    pub fn new(s: Arc<Mutex<dyn Scan>>, fieldlist: Vec<String>) -> Self {
         ProjectScan {
             s: s,
             fieldlist: fieldlist,
@@ -16,30 +18,45 @@ impl ProjectScan {
 
 impl Scan for ProjectScan {
     fn before_first(&mut self) -> Result<(), String> {
-        self.s.before_first()
+        self.s
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .before_first()
     }
 
     fn next(&mut self) -> Result<bool, String> {
-        self.s.next()
+        self.s.lock().map_err(|_| "failed to get lock")?.next()
     }
 
     fn get_int(&self, fldname: &String) -> Result<i32, String> {
         if self.has_field(fldname)? {
-            return self.s.get_int(fldname);
+            return self
+                .s
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_int(fldname);
         }
         Err(format!("field {} not found", fldname))
     }
 
     fn get_string(&self, fldname: &String) -> Result<String, String> {
         if self.has_field(fldname)? {
-            return self.s.get_string(fldname);
+            return self
+                .s
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_string(fldname);
         }
         Err(format!("field {} not found", fldname))
     }
 
     fn get_val(&self, fldname: &String) -> Result<super::constant::Constant, String> {
         if self.has_field(fldname)? {
-            return self.s.get_val(fldname);
+            return self
+                .s
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_val(fldname);
         }
         Err(format!("field {} not found", fldname))
     }
@@ -49,10 +66,14 @@ impl Scan for ProjectScan {
     }
 
     fn close(&mut self) -> Result<(), String> {
-        self.s.close()
+        self.s.lock().map_err(|_| "failed to get lock")?.close()
     }
 
     fn to_update_scan(&mut self) -> Result<&mut dyn super::update_scan::UpdateScan, String> {
+        Err("Unexpected downcast".to_string())
+    }
+
+    fn as_table_scan(&mut self) -> Result<&mut crate::record::table_scan::TableScan, String> {
         Err("Unexpected downcast".to_string())
     }
 }

@@ -39,16 +39,19 @@ impl Predicate {
         self.terms.extend(pred.terms.iter().cloned());
     }
 
-    pub fn is_satisfied(&self, s: &Box<dyn Scan>) -> bool {
-        // TODO: Remove unwrap from this code
-        !self.terms.iter().any(|t| !t.is_satisfied(s).unwrap())
+    pub fn is_satisfied(&self, s: Arc<Mutex<dyn Scan>>) -> Result<bool, String> {
+        for term in self.terms.iter() {
+            if !term.is_satisfied(s.clone())? {
+                return Ok(false);
+            }
+        }
+        Ok(true)
     }
 
-    pub fn reduction_factor(&self, p: &Box<dyn Plan>) -> i32 {
-        let factor = self
-            .terms
-            .iter()
-            .fold(1, |factor, t| factor * t.reduction_factor(p).unwrap());
+    pub fn reduction_factor(&self, p: Arc<Mutex<dyn Plan>>) -> i32 {
+        let factor = self.terms.iter().fold(1, |factor, t| {
+            factor * t.reduction_factor(p.clone()).unwrap()
+        });
 
         factor
     }

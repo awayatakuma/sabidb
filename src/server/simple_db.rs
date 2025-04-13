@@ -63,7 +63,7 @@ impl SimpleDB {
         // let qp = HeuristivQueryPlanner::new(mdm.clone());
         // let up = IndexUpdatePlanner::new(Arc::new(Mutex::new(mdm.clone())));
 
-        let planner = Planner::new(Box::new(qp), Box::new(up));
+        let planner = Planner::new(Arc::new(Mutex::new(qp)), Arc::new(Mutex::new(up)));
         db.mdm = Some(mdm);
         db.planner = Some(planner);
 

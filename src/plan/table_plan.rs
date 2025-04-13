@@ -17,10 +17,10 @@ pub struct TablePlan {
 }
 
 impl Plan for TablePlan {
-    fn open(&mut self) -> Result<Box<dyn Scan>, String> {
-        Ok(Box::new(
+    fn open(&self) -> Result<Arc<Mutex<dyn Scan>>, String> {
+        Ok(Arc::new(Mutex::new(
             TableScan::new(self.tx.clone(), self.tblname.clone(), self.layout.clone()).unwrap(),
-        ))
+        )))
     }
 
     fn blocks_accessed(&self) -> Result<i32, String> {
@@ -35,8 +35,15 @@ impl Plan for TablePlan {
         Ok(self.si.distinct_values(fldname))
     }
 
-    fn schema(&self) -> crate::record::schema::Schema {
-        self.layout.lock().unwrap().schema().lock().unwrap().clone()
+    fn schema(&self) -> Result<crate::record::schema::Schema, String> {
+        Ok(self
+            .layout
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .schema()
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .clone())
     }
 }
 

@@ -35,11 +35,13 @@ impl Expression {
         }
     }
 
-    pub fn evaluate(&self, s: &Box<dyn Scan>) -> Result<Constant, String> {
+    pub fn evaluate(&self, s: Arc<Mutex<dyn Scan>>) -> Result<Constant, String> {
         if let Some(val) = self.val.clone() {
             Ok(val)
         } else {
-            s.get_val(&self.fldname.as_ref().cloned().unwrap())
+            s.lock()
+                .map_err(|_| "failed to get lock")?
+                .get_val(&self.fldname.as_ref().cloned().unwrap())
         }
     }
 

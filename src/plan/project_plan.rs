@@ -8,50 +8,63 @@ use crate::{
 use super::plan::Plan;
 
 pub struct ProjectPlan {
-    p: Box<dyn Plan>,
+    p: Arc<Mutex<dyn Plan>>,
     schema: Schema,
 }
 
 impl Plan for ProjectPlan {
-    fn open(&mut self) -> Result<Box<dyn Scan>, String> {
-        let s = self.p.open()?;
-        Ok(Box::new(ProjectScan::new(
+    fn open(&self) -> Result<Arc<Mutex<dyn Scan>>, String> {
+        let s = self.p.lock().map_err(|_| "failed to get lock")?.open()?;
+        Ok(Arc::new(Mutex::new(ProjectScan::new(
             s,
             self.schema
                 .fields()
                 .lock()
                 .map_err(|_| "failed to get lock")?
                 .clone(),
-        )))
+        ))))
     }
 
     fn blocks_accessed(&self) -> Result<i32, String> {
-        self.p.blocks_accessed()
+        self.p
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .blocks_accessed()
     }
 
     fn records_output(&self) -> Result<i32, String> {
-        self.p.records_output()
+        self.p
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .records_output()
     }
 
     fn distinct_values(&self, fldname: String) -> Result<i32, String> {
-        self.p.distinct_values(fldname)
+        self.p
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .distinct_values(fldname)
     }
 
-    fn schema(&self) -> Schema {
-        self.schema.clone()
+    fn schema(&self) -> Result<Schema, String> {
+        Ok(self.schema.clone())
     }
 }
 
 impl ProjectPlan {
-    pub fn new(p: Box<dyn Plan>, fieldlist: Vec<String>) -> ProjectPlan {
+    pub fn new(p: Arc<Mutex<dyn Plan>>, fieldlist: Vec<String>) -> Result<ProjectPlan, String> {
         let mut schema = Schema::new();
         for fld in fieldlist {
-            schema.add(&fld, Arc::new(Mutex::new(p.schema()))).unwrap();
+            schema
+                .add(
+                    &fld,
+                    Arc::new(Mutex::new(
+                        p.lock().map_err(|_| "failed to get lock")?.schema()?,
+                    )),
+                )
+                .unwrap();
         }
 
-        Self {
-            p: p,
-            schema: schema,
-        }
+        Ok(Self { p: p, schema })
     }
 }

@@ -24,24 +24,31 @@ impl Term {
         Term { lhs: lhs, rhs: rhs }
     }
 
-    pub fn is_satisfied(&self, s: &Box<dyn Scan>) -> Result<bool, String> {
-        let lhsval = self.lhs.evaluate(s)?;
+    pub fn is_satisfied(&self, s: Arc<Mutex<dyn Scan>>) -> Result<bool, String> {
+        let lhsval = self.lhs.evaluate(s.clone())?;
         let rhsval = self.rhs.evaluate(s)?;
         Ok(rhsval.eq(&lhsval))
     }
 
-    pub fn reduction_factor(&self, p: &Box<dyn Plan>) -> Result<i32, String> {
+    pub fn reduction_factor(&self, p: Arc<Mutex<dyn Plan>>) -> Result<i32, String> {
         if let (Some(lhs_name), Some(rhs_name)) =
             (self.lhs.as_field_name(), self.rhs.as_field_name())
         {
+            let locked_p = p.lock().map_err(|_| "failed to get lock")?;
             return Ok(i32::max(
-                p.distinct_values(lhs_name)?,
-                p.distinct_values(rhs_name)?,
+                locked_p.distinct_values(lhs_name)?,
+                locked_p.distinct_values(rhs_name)?,
             ));
         } else if let Some(lhs_name) = self.lhs.as_field_name() {
-            return p.distinct_values(lhs_name);
+            return p
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .distinct_values(lhs_name);
         } else if let Some(rhs_name) = self.rhs.as_field_name() {
-            return p.distinct_values(rhs_name);
+            return p
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .distinct_values(rhs_name);
         } else if self.lhs.as_constant().eq(&self.rhs.as_constant()) {
             return Ok(1);
         }

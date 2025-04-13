@@ -35,7 +35,7 @@ impl CheckpointRecord {
         CheckpointRecord
     }
     pub fn write_to_log(lm: Arc<Mutex<LogManager>>) -> Result<i32, String> {
-        let mut p = Page::new_from_blocksize(INTEGER_BYTES);
+        let mut p = Page::new_from_blocksize(INTEGER_BYTES as usize);
         p.set_int(0, CHECKPOINT)?;
         lm.lock().map_err(|_| "failed to get lock")?.append(
             p.contents()

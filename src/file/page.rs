@@ -24,7 +24,7 @@ impl Page {
             .bb
             .lock()
             .map_err(|_| "failed to get lock")?
-            .get(offset..offset + INTEGER_BYTES)
+            .get(offset..offset + INTEGER_BYTES as usize)
             .ok_or("failed to access a buffer".to_string())?
             .try_into()
             .map_err(|_| "failed to convert slice")?;
@@ -36,7 +36,7 @@ impl Page {
 
     pub fn set_int(&mut self, offset: usize, n: i32) -> Result<(), String> {
         let n_bytes = n.to_be_bytes();
-        self.bb.lock().map_err(|_| "failed to get lock")?[offset..offset + INTEGER_BYTES]
+        self.bb.lock().map_err(|_| "failed to get lock")?[offset..offset + INTEGER_BYTES as usize]
             .copy_from_slice(&n_bytes);
         Ok(())
     }
@@ -44,7 +44,7 @@ impl Page {
     pub fn get_bytes(&self, offset: usize) -> Result<Vec<u8>, String> {
         let length = self.get_int(offset).unwrap() as usize;
         return Ok(self.bb.lock().map_err(|_| "failed to get lock")?
-            [offset + INTEGER_BYTES..offset + INTEGER_BYTES + length]
+            [offset + INTEGER_BYTES as usize..offset + INTEGER_BYTES as usize + length]
             .to_vec());
     }
 
@@ -52,7 +52,7 @@ impl Page {
         self.set_int(offset, b.len() as i32)?;
         let mut bb = self.bb.lock().map_err(|_| "failed to get lock")?;
         for i in 0..b.len() {
-            bb[offset + INTEGER_BYTES + i] = b[i];
+            bb[offset + INTEGER_BYTES as usize + i] = b[i];
         }
         Ok(())
     }
@@ -71,7 +71,7 @@ impl Page {
     pub fn max_length(strlen: usize) -> usize {
         // In this Database, only ascii is allowed to use as string
         const BYTES_PER_CHAR: usize = 1;
-        INTEGER_BYTES + (strlen * BYTES_PER_CHAR)
+        INTEGER_BYTES as usize + (strlen * BYTES_PER_CHAR)
     }
 
     pub fn contents(&self) -> Arc<Mutex<Vec<u8>>> {

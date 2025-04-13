@@ -1,3 +1,5 @@
+use crate::record::table_scan::TableScan;
+
 use super::{constant::Constant, update_scan::UpdateScan};
 
 pub trait Scan {
@@ -10,6 +12,7 @@ pub trait Scan {
     fn close(&mut self) -> Result<(), String>;
 
     fn to_update_scan(&mut self) -> Result<&mut dyn UpdateScan, String>;
+    fn as_table_scan(&mut self) -> Result<&mut TableScan, String>;
 }
 
 #[cfg(test)]
@@ -71,7 +74,7 @@ mod tests {
         let pred = Predicate::new_from_term(t);
         println!("The predicate is {}", pred);
 
-        let s3 = Box::new(SelectScan::new(Box::new(s2), pred));
+        let s3 = Arc::new(Mutex::new(SelectScan::new(Arc::new(Mutex::new(s2)), pred)));
 
         let mut s4 = ProjectScan::new(s3, vec!["B".to_string()]);
 
@@ -131,8 +134,12 @@ mod tests {
         }
         us2.close().unwrap();
 
-        let s1 = Box::new(TableScan::new(tx.clone(), "T1".to_string(), layout1).unwrap());
-        let s2 = Box::new(TableScan::new(tx.clone(), "T1".to_string(), layout2).unwrap());
+        let s1 = Arc::new(Mutex::new(
+            TableScan::new(tx.clone(), "T1".to_string(), layout1).unwrap(),
+        ));
+        let s2 = Arc::new(Mutex::new(
+            TableScan::new(tx.clone(), "T2".to_string(), layout2).unwrap(),
+        ));
 
         let s3 = ProductScan::new(s1, s2).unwrap();
 
@@ -142,7 +149,7 @@ mod tests {
         );
         let pred = Predicate::new_from_term(t);
         println!("The predicate is {}", pred);
-        let s4 = Box::new(SelectScan::new(Box::new(s3), pred));
+        let s4 = Arc::new(Mutex::new(SelectScan::new(Arc::new(Mutex::new(s3)), pred)));
 
         let mut s5 = ProjectScan::new(s4, vec!["B".to_string(), "D".to_string()]);
         while s5.next().unwrap() {
