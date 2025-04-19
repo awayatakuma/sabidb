@@ -186,8 +186,8 @@ impl Scan for TableScan {
         Ok(())
     }
 
-    fn to_update_scan(&mut self) -> Result<&mut dyn UpdateScan, String> {
-        Ok(self)
+    fn to_update_scan(&mut self) -> Result<Arc<Mutex<(dyn UpdateScan + 'static)>>, String> {
+        Ok(Arc::new(Mutex::new(self.clone())))
     }
 
     fn as_table_scan(&mut self) -> Result<&mut TableScan, String> {

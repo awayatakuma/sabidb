@@ -21,7 +21,8 @@ impl UpdatePlanner for BasicUpdatePlanner {
 
         let s = p.open()?;
         let mut binding = s.lock().map_err(|_| "failed to get lock")?;
-        let us = binding.to_update_scan()?;
+        let binding = binding.to_update_scan()?;
+        let mut us = binding.lock().map_err(|_| "failed to get lock")?;
 
         us.insert()?;
         for (fldname, val) in data.fields().iter().zip(data.vals().iter()) {
@@ -51,6 +52,8 @@ impl UpdatePlanner for BasicUpdatePlanner {
             s.lock()
                 .map_err(|_| "failed to get lock")?
                 .to_update_scan()?
+                .lock()
+                .map_err(|_| "failed to get lock")?
                 .delete()?;
             count += 1;
         }
@@ -78,6 +81,8 @@ impl UpdatePlanner for BasicUpdatePlanner {
             s.lock()
                 .map_err(|_| "failed to get lock")?
                 .to_update_scan()?
+                .lock()
+                .map_err(|_| "failed to get lock")?
                 .set_val(data.target_field(), val)?;
             count += 1;
         }

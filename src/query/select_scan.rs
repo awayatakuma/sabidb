@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use super::{predicate::Predicate, scan::Scan, update_scan::UpdateScan};
 
+#[derive(Clone)]
 pub struct SelectScan {
     s: Arc<Mutex<dyn Scan>>,
     pred: Predicate,
@@ -63,8 +64,8 @@ impl Scan for SelectScan {
         self.s.lock().map_err(|_| "failed to get lock")?.close()
     }
 
-    fn to_update_scan(&mut self) -> Result<&mut dyn super::update_scan::UpdateScan, String> {
-        Ok(self)
+    fn to_update_scan(&mut self) -> Result<Arc<Mutex<(dyn UpdateScan + 'static)>>, String> {
+        Ok(Arc::new(Mutex::new(self.clone())))
     }
 
     fn as_table_scan(&mut self) -> Result<&mut crate::record::table_scan::TableScan, String> {
@@ -78,6 +79,8 @@ impl UpdateScan for SelectScan {
             .lock()
             .map_err(|_| "failed to get lock")?
             .to_update_scan()?
+            .lock()
+            .map_err(|_| "failed to get lock")?
             .set_val(fldname, val)
     }
 
@@ -86,6 +89,8 @@ impl UpdateScan for SelectScan {
             .lock()
             .map_err(|_| "failed to get lock")?
             .to_update_scan()?
+            .lock()
+            .map_err(|_| "failed to get lock")?
             .set_int(fldname, val)
     }
 
@@ -94,6 +99,8 @@ impl UpdateScan for SelectScan {
             .lock()
             .map_err(|_| "failed to get lock")?
             .to_update_scan()?
+            .lock()
+            .map_err(|_| "failed to get lock")?
             .set_string(fldname, val)
     }
 
@@ -102,6 +109,8 @@ impl UpdateScan for SelectScan {
             .lock()
             .map_err(|_| "failed to get lock")?
             .to_update_scan()?
+            .lock()
+            .map_err(|_| "failed to get lock")?
             .insert()
     }
 
@@ -110,6 +119,8 @@ impl UpdateScan for SelectScan {
             .lock()
             .map_err(|_| "failed to get lock")?
             .to_update_scan()?
+            .lock()
+            .map_err(|_| "failed to get lock")?
             .delete()
     }
 
@@ -118,6 +129,8 @@ impl UpdateScan for SelectScan {
             .lock()
             .map_err(|_| "failed to get lock")?
             .to_update_scan()?
+            .lock()
+            .map_err(|_| "failed to get lock")?
             .get_rid()
     }
 
@@ -126,6 +139,8 @@ impl UpdateScan for SelectScan {
             .lock()
             .map_err(|_| "failed to get lock")?
             .to_update_scan()?
+            .lock()
+            .map_err(|_| "failed to get lock")?
             .move_to_rid(rid)
     }
     fn to_scan(&mut self) -> Result<&dyn Scan, String> {

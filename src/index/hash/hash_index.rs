@@ -19,7 +19,7 @@ pub struct HashIndex {
 }
 
 impl Index for HashIndex {
-    fn before_first(&mut self, search_key: Constant) -> Result<(), String> {
+    fn before_first(&mut self, search_key: &Constant) -> Result<(), String> {
         self.close()?;
         self.search_key = Some(search_key.clone());
         let bucket = search_key.hash_code() % NUM_BUCKETS;
@@ -32,7 +32,7 @@ impl Index for HashIndex {
         Ok(())
     }
 
-    fn next(&self) -> Result<bool, String> {
+    fn next(&mut self) -> Result<bool, String> {
         while let Some(ref ts) = self.ts {
             if ts
                 .get_val(&"dataval".to_string())?
@@ -53,18 +53,18 @@ impl Index for HashIndex {
         Ok(ret)
     }
 
-    fn insert(&mut self, dataval: Constant, datarid: RID) -> Result<(), String> {
-        self.before_first(dataval.clone())?;
+    fn insert(&mut self, dataval: &Constant, datarid: RID) -> Result<(), String> {
+        self.before_first(&dataval)?;
         let ts = self.ts.as_mut().unwrap();
         ts.insert()?;
         ts.set_int("block".to_string(), datarid.block_number())?;
         ts.set_int("id".to_string(), datarid.slot())?;
-        ts.set_val("dataval".to_string(), dataval)?;
+        ts.set_val("dataval".to_string(), dataval.clone())?;
 
         Ok(())
     }
 
-    fn delete(&mut self, dataval: Constant, datarid: RID) -> Result<(), String> {
+    fn delete(&mut self, dataval: &Constant, datarid: RID) -> Result<(), String> {
         self.before_first(dataval)?;
         while self.next()? {
             if self.get_data_rid()?.eq(&datarid) {

@@ -9,4 +9,5 @@ pub mod plan;
 pub mod query;
 pub mod record;
 pub mod server;
+pub mod testlib;
 pub mod tx;

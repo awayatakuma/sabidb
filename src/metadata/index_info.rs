@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     index::{
+        btree::btree_index::{self, BTreeIndex},
         hash::hash_index::{self, HashIndex},
         index::Index,
     },
@@ -48,12 +49,17 @@ impl IndexInfo {
         Ok(ret)
     }
 
-    pub fn open(&self) -> Box<dyn Index> {
-        Box::new(HashIndex::new(
+    pub(crate) fn open(&self) -> Result<Arc<Mutex<dyn Index>>, String> {
+        Ok(Arc::new(Mutex::new(BTreeIndex::new(
             self.tx.clone(),
             self.idxname.clone(),
             self.idx_layout.as_ref().unwrap().clone(),
-        ))
+        )?)))
+        // Arc::new(Mutex::new(HashIndex::new(
+        //     self.tx.clone(),
+        //     self.idxname.clone(),
+        //     self.idx_layout.as_ref().unwrap().clone(),
+        // )))
     }
 
     pub fn blocks_accessed(&self) -> Result<i32, String> {
@@ -70,8 +76,8 @@ impl IndexInfo {
                 .map_err(|_| "failed to get lock")?
                 .slot_size();
         let num_blocks = self.si.records_output() / rpb;
-        Ok(hash_index::search_cost(num_blocks, rpb))
-        // Ok(btree_index::search_cost(num_blocks, rpb));
+        // Ok(hash_index::search_cost(num_blocks, rpb))
+        Ok(btree_index::search_cost(num_blocks, rpb))
     }
 
     pub fn records_output(&self) -> i32 {

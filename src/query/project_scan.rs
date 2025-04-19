@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use super::scan::Scan;
+use super::{scan::Scan, update_scan::UpdateScan};
 
 pub struct ProjectScan {
     s: Arc<Mutex<dyn Scan>>,
@@ -69,7 +69,7 @@ impl Scan for ProjectScan {
         self.s.lock().map_err(|_| "failed to get lock")?.close()
     }
 
-    fn to_update_scan(&mut self) -> Result<&mut dyn super::update_scan::UpdateScan, String> {
+    fn to_update_scan(&mut self) -> Result<Arc<Mutex<(dyn UpdateScan + 'static)>>, String> {
         Err("Unexpected downcast".to_string())
     }
 
