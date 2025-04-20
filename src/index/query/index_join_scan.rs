@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     index::index::Index,
+    materialize::sort_scan::SortScan,
     query::{scan::Scan, update_scan::UpdateScan},
     record::table_scan::TableScan,
 };
@@ -155,6 +156,10 @@ impl Scan for IndexJoinScan {
     }
 
     fn as_table_scan(&mut self) -> Result<&mut TableScan, String> {
+        Err("Unexpected downcast".to_string())
+    }
+
+    fn as_sort_scan(&mut self) -> Result<Arc<Mutex<SortScan>>, String> {
         Err("Unexpected downcast".to_string())
     }
 }

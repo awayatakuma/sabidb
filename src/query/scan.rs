@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::record::table_scan::TableScan;
+use crate::{materialize::sort_scan::SortScan, record::table_scan::TableScan};
 
 use super::{constant::Constant, update_scan::UpdateScan};
 
@@ -15,6 +15,7 @@ pub trait Scan {
 
     fn to_update_scan(&mut self) -> Result<Arc<Mutex<dyn UpdateScan>>, String>;
     fn as_table_scan(&mut self) -> Result<&mut TableScan, String>;
+    fn as_sort_scan(&mut self) -> Result<Arc<Mutex<SortScan>>, String>;
 }
 
 #[cfg(test)]

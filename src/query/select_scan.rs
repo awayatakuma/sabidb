@@ -1,5 +1,7 @@
 use std::sync::{Arc, Mutex};
 
+use crate::materialize::sort_scan::SortScan;
+
 use super::{predicate::Predicate, scan::Scan, update_scan::UpdateScan};
 
 #[derive(Clone)]
@@ -69,6 +71,10 @@ impl Scan for SelectScan {
     }
 
     fn as_table_scan(&mut self) -> Result<&mut crate::record::table_scan::TableScan, String> {
+        Err("Unexpected downcast".to_string())
+    }
+
+    fn as_sort_scan(&mut self) -> Result<Arc<Mutex<SortScan>>, String> {
         Err("Unexpected downcast".to_string())
     }
 }
@@ -143,7 +149,7 @@ impl UpdateScan for SelectScan {
             .map_err(|_| "failed to get lock")?
             .move_to_rid(rid)
     }
-    fn to_scan(&mut self) -> Result<&dyn Scan, String> {
-        Ok(self)
+    fn to_scan(&mut self) -> Result<Arc<Mutex<dyn Scan>>, String> {
+        Ok(Arc::new(Mutex::new(self.clone())))
     }
 }

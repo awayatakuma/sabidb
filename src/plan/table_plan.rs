@@ -72,20 +72,3 @@ impl TablePlan {
         })
     }
 }
-
-#[cfg(test)]
-mod tests {
-
-    use tempfile::TempDir;
-
-    use crate::server::simple_db::SimpleDB;
-
-    #[test]
-    fn test_scan_1() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = SimpleDB::new(temp_dir.path());
-        // let mdm = db.m
-
-        let tx = db.new_tx();
-    }
-}

@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     file::block_id::BlockId,
+    materialize::sort_scan::SortScan,
     query::{constant::Constant, scan::Scan, update_scan::UpdateScan},
     tx::transaction::Transaction,
 };
@@ -193,6 +194,10 @@ impl Scan for TableScan {
     fn as_table_scan(&mut self) -> Result<&mut TableScan, String> {
         Ok(self)
     }
+
+    fn as_sort_scan(&mut self) -> Result<Arc<Mutex<SortScan>>, String> {
+        todo!()
+    }
 }
 
 impl UpdateScan for TableScan {
@@ -294,8 +299,8 @@ impl UpdateScan for TableScan {
         Ok(())
     }
 
-    fn to_scan(&mut self) -> Result<&dyn Scan, String> {
-        Ok(self)
+    fn to_scan(&mut self) -> Result<Arc<Mutex<dyn Scan>>, String> {
+        Ok(Arc::new(Mutex::new(self.clone())))
     }
 }
 
