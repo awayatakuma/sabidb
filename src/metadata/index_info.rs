@@ -3,7 +3,6 @@ use std::sync::{Arc, Mutex};
 use crate::{
     index::{
         btree::btree_index::{self, BTreeIndex},
-        hash::hash_index::{self, HashIndex},
         index::Index,
     },
     record::{

@@ -86,7 +86,7 @@ mod tests {
     use tempfile::TempDir;
 
     use crate::{
-        index::planner::{index_join_plan::IndexJoinPlan, index_select_plan::IndexSelectPlan},
+        index::planner::index_select_plan::IndexSelectPlan,
         plan::{plan::Plan, table_plan::TablePlan},
         query::{constant::Constant, scan::Scan, update_scan::UpdateScan},
         server::simple_db::SimpleDB,

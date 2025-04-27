@@ -4,10 +4,7 @@ use crate::{
     index::query::index_select_scan::IndexSelectScan,
     metadata::index_info::IndexInfo,
     plan::plan::Plan,
-    query::{
-        constant::Constant,
-        scan::{self, Scan},
-    },
+    query::{constant::Constant, scan},
     record::schema::Schema,
 };
 

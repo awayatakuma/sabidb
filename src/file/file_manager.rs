@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ffi::OsStr;
 use std::fs::{create_dir, remove_file, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
@@ -17,14 +18,14 @@ pub struct FileManager {
 
 impl FileManager {
     pub fn new_from_blocksize(db_directory: &Path, blocksize: i32) -> Self {
-        let is_new = !db_directory.exists()
-            || !db_directory
-                .read_dir()
-                .unwrap()
-                .into_iter()
-                .any(|entry| entry.is_ok());
+        let is_new = !db_directory.read_dir().unwrap().into_iter().any(|entry| {
+            entry.is_ok_and(|e| {
+                let name = e.file_name();
+                name != OsStr::new(".") && name != OsStr::new("..")
+            })
+        });
         if is_new {
-            create_dir(db_directory);
+            let _ = create_dir(db_directory);
         }
 
         for file in db_directory.iter() {

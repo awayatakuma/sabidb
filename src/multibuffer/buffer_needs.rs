@@ -1,6 +1,6 @@
 use std::i32;
 
-pub fn best_root(available: i32, size: i32) -> i32 {
+pub fn _best_root(available: i32, size: i32) -> i32 {
     let avail = available - 2;
     if avail <= 1 {
         return 1;

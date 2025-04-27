@@ -2,18 +2,13 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     query::{constant::Constant, expression::Expression, predicate::Predicate, term::Term},
-    record::schema::{self, field_type, Schema},
+    record::schema::Schema,
 };
 
 use super::{
-    create_index_data::CreateIndexData,
-    create_table_data::CreateTableData,
-    create_view_data::CreateViewData,
-    delete_data::DeleteData,
-    insert_data::InsertData,
-    lexer::{self, Lexer},
-    modify_data::ModifyData,
-    query_data::QueryData,
+    create_index_data::CreateIndexData, create_table_data::CreateTableData,
+    create_view_data::CreateViewData, delete_data::DeleteData, insert_data::InsertData,
+    lexer::Lexer, modify_data::ModifyData, query_data::QueryData,
 };
 
 #[derive(Debug)]

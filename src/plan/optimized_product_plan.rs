@@ -1,8 +1,4 @@
-use std::{
-    cell::RefCell,
-    rc::Rc,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use crate::{query::scan::Scan, record::schema::Schema};
 
@@ -49,7 +45,7 @@ impl Plan for OptimizedProductPlan {
 }
 
 impl OptimizedProductPlan {
-    pub fn new(p1: Arc<Mutex<dyn Plan>>, p2: Arc<Mutex<dyn Plan>>) -> Result<Self, String> {
+    pub fn _new(p1: Arc<Mutex<dyn Plan>>, p2: Arc<Mutex<dyn Plan>>) -> Result<Self, String> {
         let prod1 = ProductPlan::new(p1.clone(), p2.clone())?;
         let prod2 = ProductPlan::new(p2.clone(), p1.clone())?;
         let bestplan = if prod1.blocks_accessed() < prod2.blocks_accessed() {

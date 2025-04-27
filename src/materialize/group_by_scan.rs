@@ -1,7 +1,4 @@
-use std::{
-    cmp::Ordering,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use crate::query::scan::Scan;
 
@@ -102,7 +99,21 @@ impl Scan for GroupByScan {
     }
 
     fn has_field(&self, fldname: &String) -> Result<bool, String> {
-        todo!()
+        if self.groupfields.contains(fldname) {
+            return Ok(true);
+        }
+        for func in &self.aggfns {
+            if func
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .field_name()?
+                .eq(fldname)
+            {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
     }
 
     fn close(&mut self) -> Result<(), String> {

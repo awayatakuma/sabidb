@@ -1,8 +1,4 @@
-use std::{
-    cell::RefCell,
-    rc::Rc,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use crate::{metadata::matadata_manager::MetadataManager, parse::parser::Parser};
 
@@ -71,7 +67,7 @@ impl QueryPlanner for BetterQueryPlanner {
 }
 
 impl BetterQueryPlanner {
-    pub fn new(mdm: MetadataManager) -> Self {
+    pub fn _new(mdm: MetadataManager) -> Self {
         BetterQueryPlanner { mdm: mdm }
     }
 }

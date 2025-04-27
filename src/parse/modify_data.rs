@@ -1,7 +1,4 @@
-use crate::query::{
-    expression::Expression,
-    predicate::{self, Predicate},
-};
+use crate::query::{expression::Expression, predicate::Predicate};
 
 #[derive(Debug, Clone)]
 pub struct ModifyData {

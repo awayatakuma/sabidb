@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     constants::INTEGER_BYTES,
-    file::block_id::{self, BlockId},
+    file::block_id::BlockId,
     query::constant::Constant,
     record::{
         layout::Layout,
