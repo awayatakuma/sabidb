@@ -25,7 +25,7 @@ pub fn best_factor(available: i32, size: i32) -> i32 {
     let mut i = 1;
     while k > avail {
         i += 1;
-        k = i32::pow(size, 1 / i);
+        k = size / i;
     }
 
     return k;

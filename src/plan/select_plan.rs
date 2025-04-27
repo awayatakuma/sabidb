@@ -32,10 +32,10 @@ impl Plan for SelectPlan {
     }
 
     fn distinct_values(&self, fldname: String) -> Result<i32, String> {
-        if self.pred.equate_with_constant(fldname.clone()).is_some() {
+        if self.pred.equate_with_constant(&fldname).is_some() {
             Ok(1)
         } else {
-            if let Some(fldname2) = self.pred.equate_with_field(fldname.clone()) {
+            if let Some(fldname2) = self.pred.equate_with_field(&fldname) {
                 Ok(i32::min(
                     self.p
                         .lock()

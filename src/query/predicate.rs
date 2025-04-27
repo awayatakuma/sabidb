@@ -98,9 +98,9 @@ impl Predicate {
         Ok(Some(result))
     }
 
-    pub fn equate_with_constant(&self, fldname: String) -> Option<Constant> {
+    pub fn equate_with_constant(&self, fldname: &String) -> Option<Constant> {
         for t in &self.terms {
-            if let Some(c) = t.equate_with_constant(fldname.clone()) {
+            if let Some(c) = t.equate_with_constant(fldname) {
                 return Some(c);
             }
         }
@@ -108,9 +108,9 @@ impl Predicate {
         None
     }
 
-    pub fn equate_with_field(&self, fldname: String) -> Option<String> {
+    pub fn equate_with_field(&self, fldname: &String) -> Option<String> {
         for t in &self.terms {
-            if let Some(c) = t.equate_with_field(fldname.clone()) {
+            if let Some(c) = t.equate_with_field(fldname) {
                 return Some(c);
             }
         }

@@ -6,6 +6,7 @@ pub mod log;
 pub mod materialize;
 pub mod metadata;
 pub mod multibuffer;
+pub mod opt;
 pub mod parse;
 pub mod plan;
 pub mod query;

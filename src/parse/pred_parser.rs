@@ -59,8 +59,6 @@ mod tests {
 
     use crate::parse::{lexer::BadSyntaxException, pred_parser::PredParser};
 
-    use super::Lexer;
-
     #[test]
     fn test_pred_parser1() {
         let s = "a=100";

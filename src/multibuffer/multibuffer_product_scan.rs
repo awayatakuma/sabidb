@@ -96,7 +96,7 @@ impl Scan for MultibufferProductScan {
     }
 
     fn next(&mut self) -> Result<bool, String> {
-        while self
+        while !self
             .prodscan
             .as_ref()
             .unwrap()

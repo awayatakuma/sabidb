@@ -1,96 +1,138 @@
 use std::sync::{Arc, Mutex};
 
 use crate::{
-    parse::{lexer::BadSyntaxException, parser::Parser, query_data::QueryData},
-    tx::transaction::Transaction,
+    metadata::matadata_manager::MetadataManager,
+    parse::query_data::QueryData,
+    plan::{plan::Plan, project_plan::ProjectPlan, query_planner::QueryPlanner},
 };
 
-use super::{plan::Plan, query_planner::QueryPlanner, update_planner::UpdatePlanner};
+use super::table_planner::TablePlanner;
 
-pub struct Planner {
-    qplanner: Arc<Mutex<dyn QueryPlanner>>,
-    uplanner: Arc<Mutex<dyn UpdatePlanner>>,
+pub struct HeuristicQueryPlanner {
+    tableplanners: Vec<TablePlanner>,
+    mdm: Arc<Mutex<MetadataManager>>,
 }
 
-impl Planner {
-    pub fn new(
-        qplanner: Arc<Mutex<dyn QueryPlanner>>,
-        uplanner: Arc<Mutex<dyn UpdatePlanner>>,
-    ) -> Self {
-        Planner {
-            qplanner: qplanner,
-            uplanner: uplanner,
+impl HeuristicQueryPlanner {
+    pub fn new(mdm: Arc<Mutex<MetadataManager>>) -> Self {
+        HeuristicQueryPlanner {
+            tableplanners: Vec::new(),
+            mdm,
         }
     }
 
-    pub fn create_query_planner(
-        &mut self,
-        qry: String,
-        tx: Arc<Mutex<Transaction>>,
-    ) -> Result<Arc<Mutex<dyn Plan>>, super::super::parse::lexer::BadSyntaxException> {
-        let mut parser = Parser::new(&qry);
-        let data = parser.query()?;
-        // Self::verify_query(&data);
-
-        self.qplanner
-            .lock()
-            .map_err(|_| BadSyntaxException {})?
-            .create_plan(data, tx)
-            .map_err(|_| BadSyntaxException {})
-    }
-
-    pub fn execute_update(
-        &mut self,
-        cmd: &str,
-        tx: Arc<Mutex<Transaction>>,
-    ) -> Result<i32, super::super::parse::lexer::BadSyntaxException> {
-        let mut p = Parser::new(cmd);
-        // Self::verify_update(&data);
-        match p.update_cmd()? {
-            crate::parse::parser::UpdateCommand::Insert(insert_data) => self
-                .uplanner
+    fn get_lowest_select_plan(&mut self) -> Result<Arc<Mutex<dyn Plan>>, String> {
+        let mut best_i = 0;
+        let mut bestplan = self.tableplanners[0].make_select_plan()?;
+        for (i, tp) in self.tableplanners[1..].iter().enumerate() {
+            let plan = tp.make_select_plan()?;
+            if plan
                 .lock()
-                .map_err(|_| BadSyntaxException {})?
-                .execute_insert(insert_data, tx)
-                .map_err(|_| BadSyntaxException),
-            crate::parse::parser::UpdateCommand::Delete(delete_data) => self
-                .uplanner
-                .lock()
-                .map_err(|_| BadSyntaxException {})?
-                .execute_delete(delete_data, tx)
-                .map_err(|_| BadSyntaxException),
-            crate::parse::parser::UpdateCommand::Modify(modify_data) => self
-                .uplanner
-                .lock()
-                .map_err(|_| BadSyntaxException {})?
-                .execute_modify(modify_data, tx)
-                .map_err(|_| BadSyntaxException),
-            crate::parse::parser::UpdateCommand::CreateTable(create_table_data) => self
-                .uplanner
-                .lock()
-                .map_err(|_| BadSyntaxException {})?
-                .execute_create_table(create_table_data, tx)
-                .map_err(|_| BadSyntaxException),
-            crate::parse::parser::UpdateCommand::CreateView(create_view_data) => self
-                .uplanner
-                .lock()
-                .map_err(|_| BadSyntaxException {})?
-                .execute_create_view(create_view_data, tx)
-                .map_err(|_| BadSyntaxException),
-            crate::parse::parser::UpdateCommand::CreateIndex(create_index_data) => self
-                .uplanner
-                .lock()
-                .map_err(|_| BadSyntaxException {})?
-                .execute_create_index(create_index_data, tx)
-                .map_err(|_| BadSyntaxException),
+                .map_err(|_| "failed to get lock")?
+                .records_output()?
+                < bestplan
+                    .lock()
+                    .map_err(|_| "failed to get lock")?
+                    .records_output()?
+            {
+                bestplan = plan;
+                best_i = i;
+            }
         }
+
+        self.tableplanners.remove(best_i);
+        Ok(bestplan)
     }
 
-    // SimpleDB does not verify queries, although it should.
-    fn _verify_query(_data: &QueryData) {}
+    fn get_lowest_join_plan(
+        &mut self,
+        current: Arc<Mutex<dyn Plan>>,
+    ) -> Result<Option<Arc<Mutex<dyn Plan>>>, String> {
+        let mut best_i = 0;
+        let mut bestplan: Option<Arc<Mutex<dyn Plan>>> = None;
+        for (i, tp) in self.tableplanners.iter().enumerate() {
+            if let Some(plan) = tp.make_join_plan(current.clone())? {
+                if bestplan.is_none()
+                    || plan
+                        .lock()
+                        .map_err(|_| "failed to get lock")?
+                        .records_output()?
+                        < bestplan
+                            .as_ref()
+                            .unwrap()
+                            .lock()
+                            .map_err(|_| "failed to get lock")?
+                            .records_output()?
+                {
+                    best_i = i;
+                    bestplan = Some(plan);
+                }
+            }
+        }
+        if bestplan.is_some() {
+            self.tableplanners.remove(best_i);
+        }
 
-    // SimpleDB does not verify queries, although it should.
-    // fn verify_update(_data: Object) {}
+        Ok(bestplan)
+    }
+
+    fn get_lowest_product_plan(
+        &mut self,
+        current: Arc<Mutex<dyn Plan>>,
+    ) -> Result<Arc<Mutex<dyn Plan>>, String> {
+        let mut best_i = 0;
+        let mut bestplan = self.tableplanners[0].make_select_plan()?;
+        for (i, tp) in self.tableplanners[1..].iter().enumerate() {
+            let plan = tp.make_product_plan(current.clone())?;
+            if plan
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .records_output()?
+                < bestplan
+                    .lock()
+                    .map_err(|_| "failed to get lock")?
+                    .records_output()?
+            {
+                bestplan = plan;
+                best_i = i;
+            }
+        }
+
+        self.tableplanners.remove(best_i);
+        Ok(bestplan)
+    }
+}
+
+impl QueryPlanner for HeuristicQueryPlanner {
+    fn create_plan(
+        &mut self,
+        data: QueryData,
+        tx: Arc<Mutex<crate::tx::transaction::Transaction>>,
+    ) -> Result<Arc<Mutex<dyn crate::plan::plan::Plan>>, String> {
+        // Step 1:  Create a TablePlanner object for each mentioned table
+        for tblname in data.tables() {
+            let tp = TablePlanner::new(tblname, data.pred(), tx.clone(), self.mdm.clone())?;
+            self.tableplanners.push(tp);
+        }
+
+        // Step 2:  Choose the lowest-size plan to begin the join order
+        let mut currentplan = self.get_lowest_select_plan()?;
+
+        // Step 3:  Repeatedly add a plan to the join order
+        while !self.tableplanners.is_empty() {
+            if let Some(p) = self.get_lowest_join_plan(currentplan.clone())? {
+                currentplan = p
+            } else {
+                currentplan = self.get_lowest_product_plan(currentplan)?;
+            }
+        }
+
+        // Step 4.  Project on the field names and return
+        Ok(Arc::new(Mutex::new(ProjectPlan::new(
+            currentplan,
+            data.fields(),
+        )?)))
+    }
 }
 
 #[cfg(test)]
@@ -113,7 +155,7 @@ mod tests {
     #[test]
     fn test_planner1() {
         let temp_dir = TempDir::new().unwrap();
-        let db = SimpleDB::new(temp_dir.path());
+        let db = SimpleDB::new_with_refined_planners(temp_dir.path());
         let tx = db.new_tx();
         let mut planner = db.planner.unwrap();
 
@@ -157,7 +199,7 @@ mod tests {
     #[test]
     fn test_planner2() {
         let temp_dir = TempDir::new().unwrap();
-        let db = SimpleDB::new(temp_dir.path());
+        let db = SimpleDB::new_with_refined_planners(temp_dir.path());
         let tx = db.new_tx();
         let mut planner = db.planner.unwrap();
 
@@ -183,7 +225,7 @@ mod tests {
             planner.execute_update(&cmd, tx.clone()).unwrap();
         }
 
-        let qry = "select A,B,C,D from T,TT where A=C";
+        let qry = "select A, B, C, D from T,TT where A=C";
         let p = planner
             .create_query_planner(qry.to_string(), tx.clone())
             .unwrap();
@@ -232,7 +274,7 @@ mod tests {
     #[test]
     fn test_single_table_plan() {
         let temp_dir = TempDir::new().unwrap();
-        let db = SimpleDB::new(temp_dir.path());
+        let db = SimpleDB::new_with_refined_planners(temp_dir.path());
         let mdm = db.metadata_manager();
         let tx = db.new_tx();
 
@@ -283,7 +325,7 @@ mod tests {
     #[test]
     fn test_multi_table_plan() {
         let temp_dir = TempDir::new().unwrap();
-        let db = SimpleDB::new(temp_dir.path());
+        let db = SimpleDB::new_with_refined_planners(temp_dir.path());
         let mdm = db.metadata_manager();
         let tx = db.new_tx();
 

@@ -11,10 +11,7 @@ pub(crate) trait Index {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        collections::HashMap,
-        sync::{Arc, Mutex},
-    };
+    use std::collections::HashMap;
 
     use tempfile::TempDir;
 
@@ -32,7 +29,7 @@ mod tests {
         create_student_data(&mut db);
 
         let tx = db.new_tx();
-        let mdm = Arc::new(Mutex::new(db.metadata_manager()));
+        let mdm = db.metadata_manager();
 
         let studentplan = TablePlan::new(tx.clone(), "students".to_string(), mdm.clone()).unwrap();
         let binding = studentplan
@@ -77,7 +74,7 @@ mod tests {
         create_student_data(&mut db);
 
         let tx = db.new_tx();
-        let mdm = Arc::new(Mutex::new(db.metadata_manager()));
+        let mdm = db.metadata_manager();
 
         let studentplan = TablePlan::new(tx.clone(), "students".to_string(), mdm.clone()).unwrap();
         let binding = studentplan

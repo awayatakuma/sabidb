@@ -185,7 +185,7 @@ mod tests {
         create_student_data(&mut db);
 
         let tx = db.new_tx();
-        let mdm = Arc::new(Mutex::new(db.metadata_manager()));
+        let mdm = db.metadata_manager();
 
         let indexes = mdm
             .lock()

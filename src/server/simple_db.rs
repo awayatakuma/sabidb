@@ -7,8 +7,10 @@ use crate::{
     buffer::buffer_manager::BufferManager,
     constants::LOG_FILE,
     file::file_manager::FileManager,
+    index::planner::index_update_planner::IndexUpdatePlanner,
     log::log_manager::LogManager,
     metadata::matadata_manager::MetadataManager,
+    opt::heuristic_query_planner::HeuristicQueryPlanner,
     plan::{
         basic_query_planner::BasicQueryPlanner, basic_update_planner::BasicUpdatePlanner,
         planner::Planner,
@@ -23,7 +25,7 @@ pub struct SimpleDB {
     fm: Arc<Mutex<FileManager>>,
     lm: Arc<Mutex<LogManager>>,
     bm: Arc<Mutex<BufferManager>>,
-    mdm: Option<MetadataManager>,
+    mdm: Option<Arc<Mutex<MetadataManager>>>,
     pub planner: Option<Planner>,
 }
 
@@ -57,11 +59,11 @@ impl SimpleDB {
             println!("recovering existing database")
         }
 
-        let mdm = MetadataManager::new(is_new, tx.clone()).unwrap();
+        let mdm = Arc::new(Mutex::new(
+            MetadataManager::new(is_new, tx.clone()).unwrap(),
+        ));
         let qp = BasicQueryPlanner::new(mdm.clone());
-        let up = BasicUpdatePlanner::new(Arc::new(Mutex::new(mdm.clone())));
-        // let qp = HeuristivQueryPlanner::new(mdm.clone());
-        // let up = IndexUpdatePlanner::new(Arc::new(Mutex::new(mdm.clone())));
+        let up = BasicUpdatePlanner::new(mdm.clone());
 
         let planner = Planner::new(Arc::new(Mutex::new(qp)), Arc::new(Mutex::new(up)));
         db.mdm = Some(mdm);
@@ -72,7 +74,34 @@ impl SimpleDB {
         db
     }
 
-    pub fn metadata_manager(&self) -> MetadataManager {
+    pub fn new_with_refined_planners(dirname: &Path) -> Self {
+        let mut db = Self::new_with_sizes(dirname, BLOCK_SISE, BUFFER_SISE);
+        let tx = db.new_tx();
+        let is_new = db.fm.lock().unwrap().is_new();
+        if is_new {
+            println!("creating new database")
+        } else {
+            println!("recovering existing database")
+        }
+
+        let mdm = Arc::new(Mutex::new(
+            MetadataManager::new(is_new, tx.clone()).unwrap(),
+        ));
+        // let qp = BasicQueryPlanner::new(mdm.clone());
+        // let up = BasicUpdatePlanner::new(Arc::new(Mutex::new(mdm.clone())));
+        let qp = HeuristicQueryPlanner::new(mdm.clone());
+        let up = IndexUpdatePlanner::new(mdm.clone());
+
+        let planner = Planner::new(Arc::new(Mutex::new(qp)), Arc::new(Mutex::new(up)));
+        db.mdm = Some(mdm);
+        db.planner = Some(planner);
+
+        tx.lock().unwrap().commit().unwrap();
+
+        db
+    }
+
+    pub fn metadata_manager(&self) -> Arc<Mutex<MetadataManager>> {
         self.mdm.clone().unwrap()
     }
 

@@ -50,19 +50,19 @@ impl MultibufferProductPlan {
             .to_update_scan()?;
         while src.lock().map_err(|_| "failed to get lock")?.next()? {
             dest.lock().map_err(|_| "failed to get lock")?.insert()?;
-            for fldname in sch
+            let flds = sch
                 .lock()
                 .map_err(|_| "failed to get lock")?
                 .fields()
                 .lock()
                 .map_err(|_| "failed to get lock")?
-                .iter()
-            {
+                .clone();
+            for fldname in flds {
                 dest.lock().map_err(|_| "failed to get lock")?.set_val(
                     fldname.clone(),
                     src.lock()
                         .map_err(|_| "failed to get lock")?
-                        .get_val(fldname)?,
+                        .get_val(&fldname)?,
                 )?;
             }
         }

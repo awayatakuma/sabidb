@@ -55,14 +55,14 @@ impl Term {
         Ok(i32::MAX)
     }
 
-    pub fn equate_with_constant(&self, fldname: String) -> Option<Constant> {
+    pub fn equate_with_constant(&self, fldname: &String) -> Option<Constant> {
         if self.lhs.is_field_name()
             && self.lhs.as_field_name().eq(&Some(fldname.clone()))
             && !self.rhs.is_field_name()
         {
             return self.rhs.as_constant();
         } else if self.rhs.is_field_name()
-            && self.rhs.as_field_name().eq(&Some(fldname))
+            && self.rhs.as_field_name().eq(&Some(fldname.clone()))
             && !self.lhs.is_field_name()
         {
             return self.lhs.as_constant();
@@ -71,14 +71,14 @@ impl Term {
         None
     }
 
-    pub fn equate_with_field(&self, fldname: String) -> Option<String> {
+    pub fn equate_with_field(&self, fldname: &String) -> Option<String> {
         if self.lhs.is_field_name()
             && self.lhs.as_field_name().eq(&Some(fldname.clone()))
             && !self.rhs.is_field_name()
         {
             return self.rhs.as_field_name();
         } else if self.rhs.is_field_name()
-            && self.rhs.as_field_name().eq(&Some(fldname))
+            && self.rhs.as_field_name().eq(&Some(fldname.clone()))
             && !self.lhs.is_field_name()
         {
             return self.lhs.as_field_name();

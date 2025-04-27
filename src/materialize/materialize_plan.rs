@@ -30,26 +30,25 @@ impl Plan for MaterializePlan {
             .map_err(|_| "failed to get lock")?
             .open()?;
         let dest = temp.open()?;
-        while src.lock().map_err(|_| "failed to get lock")?.next()? {
+        let mut locked_src = src.lock().map_err(|_| "failed to get lock")?;
+        while locked_src.next()? {
             dest.lock().map_err(|_| "failed to get lock")?.insert()?;
-            for fldname in sch
+            let flds = sch
                 .lock()
                 .map_err(|_| "failed to get lock")?
                 .fields()
                 .lock()
                 .map_err(|_| "failed to get lock")?
-                .iter()
-            {
-                dest.lock().map_err(|_| "failed to get lock")?.set_val(
-                    fldname.clone(),
-                    src.lock()
-                        .map_err(|_| "failed to get lock")?
-                        .get_val(fldname)?,
-                );
+                .clone();
+            for fldname in flds {
+                let val = locked_src.get_val(&fldname)?;
+                dest.lock()
+                    .map_err(|_| "failed to get lock")?
+                    .set_val(fldname.clone(), val)?;
             }
         }
 
-        src.lock().map_err(|_| "failed to get lock")?.close()?;
+        locked_src.close()?;
         dest.lock()
             .map_err(|_| "failed to get lock")?
             .before_first()?;

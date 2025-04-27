@@ -13,7 +13,7 @@ use super::{
 
 #[derive(Clone)]
 pub struct BasicQueryPlanner {
-    mdm: MetadataManager,
+    mdm: Arc<Mutex<MetadataManager>>,
 }
 
 impl QueryPlanner for BasicQueryPlanner {
@@ -25,15 +25,21 @@ impl QueryPlanner for BasicQueryPlanner {
         //Step 1: Create a plan for each mentioned table or view.
         let mut plans = vec![];
         for tbl in data.tables() {
-            if let Some(viewdef) = self.mdm.get_view_def(tbl.clone(), tx.clone())? {
-                let mut parser = Parser::new(&viewdef);
+            let viewdef = self
+                .mdm
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_view_def(tbl.clone(), tx.clone())?;
+            if let Some(vd) = viewdef {
+                let mut parser = Parser::new(vd.as_str());
                 let viewdata = parser.query().map_err(|_| "failed to create plan")?;
-                plans.push(self.create_plan(viewdata, tx.clone())?);
+                let plan = self.create_plan(viewdata, tx.clone())?;
+                plans.push(plan);
             } else {
                 plans.push(Arc::new(Mutex::new(TablePlan::new(
                     tx.clone(),
                     tbl,
-                    Arc::new(Mutex::new(self.mdm.clone())),
+                    self.mdm.clone(),
                 )?)));
             }
         }
@@ -54,7 +60,7 @@ impl QueryPlanner for BasicQueryPlanner {
 }
 
 impl BasicQueryPlanner {
-    pub fn new(mdm: MetadataManager) -> Self {
+    pub fn new(mdm: Arc<Mutex<MetadataManager>>) -> Self {
         BasicQueryPlanner { mdm: mdm }
     }
 }
