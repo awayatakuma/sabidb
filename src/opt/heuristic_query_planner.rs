@@ -24,7 +24,8 @@ impl HeuristicQueryPlanner {
     fn get_lowest_select_plan(&mut self) -> Result<Arc<Mutex<dyn Plan>>, String> {
         let mut best_i = 0;
         let mut bestplan = self.tableplanners[0].make_select_plan()?;
-        for (i, tp) in self.tableplanners[1..].iter().enumerate() {
+        for (idx, tp) in self.tableplanners[1..].iter().enumerate() {
+            let i = idx + 1;
             let plan = tp.make_select_plan()?;
             if plan
                 .lock()
@@ -81,8 +82,9 @@ impl HeuristicQueryPlanner {
         current: Arc<Mutex<dyn Plan>>,
     ) -> Result<Arc<Mutex<dyn Plan>>, String> {
         let mut best_i = 0;
-        let mut bestplan = self.tableplanners[0].make_select_plan()?;
-        for (i, tp) in self.tableplanners[1..].iter().enumerate() {
+        let mut bestplan = self.tableplanners[0].make_product_plan(current.clone())?;
+        for (idx, tp) in self.tableplanners[1..].iter().enumerate() {
+            let i = idx + 1;
             let plan = tp.make_product_plan(current.clone())?;
             if plan
                 .lock()

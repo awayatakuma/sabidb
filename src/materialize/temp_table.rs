@@ -43,8 +43,8 @@ impl TempTable {
 }
 
 fn next_table_name() -> String {
-    let mut next_num = *next_table_num.lock().unwrap();
-    next_num += 1;
+    *next_table_num.lock().unwrap() += 1;
+    let next_num = *next_table_num.lock().unwrap();
 
     format!("temp{}", next_num)
 }

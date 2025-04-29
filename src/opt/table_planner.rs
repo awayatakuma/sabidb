@@ -63,13 +63,12 @@ impl TablePlanner {
             .is_none()
         {
             return Ok(None);
+        }
+        let p = self.make_index_join(current.clone(), currsch.clone())?;
+        if p.is_some() {
+            return Ok(p);
         } else {
-            let p = self.make_index_join(current.clone(), currsch.clone())?;
-            if p.is_some() {
-                return Ok(p);
-            } else {
-                return Ok(Some(self.make_product_join(current, currsch)?));
-            }
+            return Ok(Some(self.make_product_join(current, currsch)?));
         }
     }
 
@@ -106,24 +105,22 @@ impl TablePlanner {
         currsch: Arc<Mutex<Schema>>,
     ) -> Result<Option<Arc<Mutex<dyn Plan>>>, String> {
         for fldname in self.indexes.keys() {
-            let outerfield = self.mypred.equate_with_field(fldname);
-            if let Some(outerfield) = outerfield {
+            if let Some(outerfield) = self.mypred.equate_with_field(fldname) {
                 if currsch
                     .lock()
                     .map_err(|_| "failed to get lock")?
                     .has_field(fldname)?
                 {
-                    continue;
+                    let ii = self.indexes.get(&outerfield).unwrap();
+                    let p = Arc::new(Mutex::new(IndexJoinPlan::new(
+                        current.clone(),
+                        self.myplan.clone(),
+                        ii.clone(),
+                        outerfield,
+                    )?));
+                    let sp = self.add_select_pred(p)?;
+                    return Ok(Some(self.add_join_pred(sp, currsch.clone())?));
                 }
-                let ii = self.indexes.get(&outerfield).unwrap();
-                let p = Arc::new(Mutex::new(IndexJoinPlan::new(
-                    current.clone(),
-                    self.myplan.clone(),
-                    ii.clone(),
-                    outerfield,
-                )?));
-                let sp = self.add_select_pred(p)?;
-                return Ok(Some(self.add_join_pred(sp, currsch.clone())?));
             }
         }
 
@@ -140,8 +137,7 @@ impl TablePlanner {
     }
 
     fn add_select_pred(&self, p: Arc<Mutex<dyn Plan>>) -> Result<Arc<Mutex<dyn Plan>>, String> {
-        let selectpred = self.mypred.select_sub_pred(self.myschema.clone())?;
-        if let Some(selectpred) = selectpred {
+        if let Some(selectpred) = self.mypred.select_sub_pred(self.myschema.clone())? {
             Ok(Arc::new(Mutex::new(SelectPlan::new(p, selectpred))))
         } else {
             Ok(p)
@@ -153,8 +149,7 @@ impl TablePlanner {
         p: Arc<Mutex<dyn Plan>>,
         currsch: Arc<Mutex<Schema>>,
     ) -> Result<Arc<Mutex<dyn Plan>>, String> {
-        let joinpred = self.mypred.join_sub_pred(self.myschema.clone(), currsch)?;
-        if let Some(joinpred) = joinpred {
+        if let Some(joinpred) = self.mypred.join_sub_pred(currsch, self.myschema.clone())? {
             Ok(Arc::new(Mutex::new(SelectPlan::new(p, joinpred))))
         } else {
             Ok(p)
