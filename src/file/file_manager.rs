@@ -18,12 +18,13 @@ pub struct FileManager {
 
 impl FileManager {
     pub fn new_from_blocksize(db_directory: &Path, blocksize: i32) -> Self {
-        let is_new = !db_directory.read_dir().unwrap().into_iter().any(|entry| {
-            entry.is_ok_and(|e| {
-                let name = e.file_name();
-                name != OsStr::new(".") && name != OsStr::new("..")
-            })
-        });
+        let is_new = !db_directory.exists()
+            || !db_directory.read_dir().unwrap().into_iter().any(|entry| {
+                entry.is_ok_and(|e| {
+                    let name = e.file_name();
+                    name != OsStr::new(".") && name != OsStr::new("..")
+                })
+            });
         if is_new {
             let _ = create_dir(db_directory);
         }

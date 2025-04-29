@@ -87,8 +87,7 @@ impl SimpleDB {
         let mdm = Arc::new(Mutex::new(
             MetadataManager::new(is_new, tx.clone()).unwrap(),
         ));
-        // let qp = BasicQueryPlanner::new(mdm.clone());
-        // let up = BasicUpdatePlanner::new(Arc::new(Mutex::new(mdm.clone())));
+
         let qp = HeuristicQueryPlanner::new(mdm.clone());
         let up = IndexUpdatePlanner::new(mdm.clone());
 
