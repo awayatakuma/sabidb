@@ -7,6 +7,7 @@ use crate::{
 
 use super::{plan::Plan, query_planner::QueryPlanner, update_planner::UpdatePlanner};
 
+#[derive(Clone)]
 pub struct Planner {
     qplanner: Arc<Mutex<dyn QueryPlanner>>,
     uplanner: Arc<Mutex<dyn UpdatePlanner>>,

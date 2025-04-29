@@ -10,6 +10,7 @@ pub mod opt;
 pub mod parse;
 pub mod plan;
 pub mod query;
+pub mod rdbc;
 pub mod record;
 pub mod server;
 pub mod testlib;
