@@ -76,6 +76,8 @@ impl SimpleDB {
 
     pub fn new_with_refined_planners(dirname: &Path) -> Self {
         let mut db = Self::new_with_sizes(dirname, BLOCK_SISE, BUFFER_SISE);
+        print_logo();
+
         let tx = db.new_tx();
         let is_new = db.fm.lock().unwrap().is_new();
         if is_new {
@@ -122,6 +124,20 @@ impl SimpleDB {
                 .unwrap(),
         ))
     }
+}
+
+fn print_logo() {
+    println!("\x1b[38;5;208m");
+
+    println!(
+        r#"
+ ___    __    ____  ____  ____  ____ 
+/ __)  /__\  (  _ \(_  _)(  _ \(  _ \
+\__ \ /(__)\  ) _ < _)(_  )(_) )) _ <
+(___/(__)(__)(____/(____)(____/(____/"#
+    );
+
+    println!("\x1b[0m");
 }
 
 #[cfg(test)]

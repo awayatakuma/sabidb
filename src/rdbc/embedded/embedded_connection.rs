@@ -33,7 +33,7 @@ impl EmbeddedConnection {
         self.current_tx.clone()
     }
 
-    pub(crate) fn rollback(&mut self) -> Result<(), crate::rdbc::sql_exception::SQLException> {
+    pub(crate) fn _rollback(&mut self) -> Result<(), crate::rdbc::sql_exception::SQLException> {
         self.current_tx
             .lock()
             .map_err(|_| SQLException {})?

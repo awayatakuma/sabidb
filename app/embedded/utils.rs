@@ -1,17 +1,14 @@
 use std::{
     io::{stdout, Write},
-    path::Path,
     process::exit,
 };
 
-use simpledb::{
+use sabidb::{
     rdbc::{
         connection_adapter::ConnectionAdapter,
-        driver_adapter::DriverAdapter,
         embedded::{
-            embedded_connection::EmbeddedConnection, embedded_driver::EmbeddedDriver,
-            embedded_metadata::EmbeddedMetadata, embedded_result_set::EmbeddedResultSet,
-            embedded_statement::EmbeddedStatement,
+            embedded_connection::EmbeddedConnection, embedded_metadata::EmbeddedMetadata,
+            embedded_result_set::EmbeddedResultSet, embedded_statement::EmbeddedStatement,
         },
         result_set_adapter::ResultSetAdapter,
         result_set_metadata_adapter::ResultSetMetadataAdapter,
@@ -21,34 +18,7 @@ use simpledb::{
     record::schema::field_type,
 };
 
-use clap::Parser;
-
-#[derive(Debug, Parser)]
-struct Args {
-    #[arg(help = "dbname", short)]
-    dbname: Option<String>,
-}
-
-fn main() {
-    let args = Args::parse();
-    let dbpath = format!(
-        "sabidb/{}",
-        if let Some(dbname) = args.dbname {
-            dbname
-        } else {
-            "studentdb".to_string()
-        }
-    );
-    println!("{}", dbpath);
-    let dbpath = Path::new(&dbpath);
-    let mut drvr = EmbeddedDriver::connect(dbpath);
-
-    while let Ok(qry) = read_query() {
-        exec(&mut drvr, &qry);
-    }
-}
-
-fn read_query() -> Result<String, String> {
+pub fn read_query() -> Result<String, String> {
     print!("sabidb>");
     stdout().flush().expect("require input");
 
@@ -59,7 +29,7 @@ fn read_query() -> Result<String, String> {
     Ok(input)
 }
 
-fn exec(conn: &mut EmbeddedConnection, qry: &String) {
+pub fn exec(conn: &mut EmbeddedConnection, qry: &String) {
     let words: Vec<&str> = qry.split_whitespace().collect();
     if words.is_empty() {
         return;

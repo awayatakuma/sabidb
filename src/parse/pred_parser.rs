@@ -20,7 +20,7 @@ impl<'a> PredParser<'a> {
         } else if self.lex.match_int_constant() {
             self.lex.eat_int_constant()?;
         } else {
-            panic!("unreachable!!")
+            return Err(super::lexer::BadSyntaxException);
         }
         Ok(())
     }

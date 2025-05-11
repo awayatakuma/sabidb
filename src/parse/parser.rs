@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::{
+    parse::lexer::BadSyntaxException,
     query::{constant::Constant, expression::Expression, predicate::Predicate, term::Term},
     record::schema::Schema,
 };
@@ -41,7 +42,7 @@ impl<'a> Parser<'a> {
         } else if self.lex.match_int_constant() {
             return Ok(Constant::new_from_i32(self.lex.eat_int_constant()?));
         } else {
-            panic!("unreachable!!")
+            return Err(BadSyntaxException);
         }
     }
 
@@ -120,7 +121,7 @@ impl<'a> Parser<'a> {
         } else if self.lex.match_keyword("create") {
             self.create()
         } else {
-            panic!("unreachable!!")
+            return Err(BadSyntaxException);
         }
     }
 
@@ -133,7 +134,7 @@ impl<'a> Parser<'a> {
         } else if self.lex.match_keyword("index") {
             Ok(UpdateCommand::CreateIndex(self.create_index()?))
         } else {
-            panic!("unreachable!!")
+            return Err(BadSyntaxException);
         }
     }
 
