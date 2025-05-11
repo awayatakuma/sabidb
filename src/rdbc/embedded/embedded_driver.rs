@@ -4,14 +4,13 @@ use crate::{rdbc::driver_adapter::DriverAdapter, server::simple_db::SimpleDB};
 
 use super::embedded_connection::EmbeddedConnection;
 
-pub struct EmbeddedAdapter {}
+pub struct EmbeddedDriver {}
 
-impl DriverAdapter for EmbeddedAdapter {
+impl DriverAdapter for EmbeddedDriver {
     type Con = EmbeddedConnection;
 
-    fn connect(dbname: &str) -> Self::Con {
-        let path = Path::new(dbname);
-        let db = SimpleDB::new(path);
+    fn connect(dbpath: &Path) -> Self::Con {
+        let db = SimpleDB::new_with_refined_planners(dbpath);
         EmbeddedConnection::new(db)
     }
 

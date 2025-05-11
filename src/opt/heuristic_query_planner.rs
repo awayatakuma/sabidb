@@ -181,7 +181,7 @@ mod tests {
 
         let qry = "select B from TT where A=10";
         let p = planner
-            .create_query_planner(qry.to_string(), tx.clone())
+            .create_query_planner(&qry.to_string(), tx.clone())
             .unwrap();
         let s = p.lock().unwrap().open().unwrap();
 
@@ -229,7 +229,7 @@ mod tests {
 
         let qry = "select A, B, C, D from T,TT where A=C";
         let p = planner
-            .create_query_planner(qry.to_string(), tx.clone())
+            .create_query_planner(&qry.to_string(), tx.clone())
             .unwrap();
         let s = p.lock().unwrap().open().unwrap();
         let mut locked_s = s.lock().unwrap();

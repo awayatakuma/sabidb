@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-pub(crate) mod field_type {
+pub mod field_type {
     pub const INTEGER: i32 = 4;
     pub const VARCHAR: i32 = 12;
 }

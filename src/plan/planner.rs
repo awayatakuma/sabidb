@@ -26,10 +26,10 @@ impl Planner {
 
     pub fn create_query_planner(
         &mut self,
-        qry: String,
+        qry: &String,
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<Arc<Mutex<dyn Plan>>, super::super::parse::lexer::BadSyntaxException> {
-        let mut parser = Parser::new(&qry);
+        let mut parser = Parser::new(qry);
         let data = parser.query()?;
         // Self::verify_query(&data);
 
@@ -138,7 +138,7 @@ mod tests {
 
         let qry = "select B from TT where A=10";
         let p = planner
-            .create_query_planner(qry.to_string(), tx.clone())
+            .create_query_planner(&qry.to_string(), tx.clone())
             .unwrap();
         let s = p.lock().unwrap().open().unwrap();
 
@@ -186,7 +186,7 @@ mod tests {
 
         let qry = "select A,B,C,D from T,TT where A=C";
         let p = planner
-            .create_query_planner(qry.to_string(), tx.clone())
+            .create_query_planner(&qry.to_string(), tx.clone())
             .unwrap();
         let s = p.lock().unwrap().open().unwrap();
         let mut locked_s = s.lock().unwrap();

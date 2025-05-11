@@ -29,9 +29,10 @@ impl FileManager {
             let _ = create_dir(db_directory);
         }
 
-        for file in db_directory.iter() {
-            if file.to_string_lossy().starts_with("temp") {
-                let _ = remove_file(db_directory.join(file));
+        for file in db_directory.read_dir().unwrap().into_iter() {
+            let filepath = file.unwrap().file_name();
+            if filepath.to_string_lossy().starts_with("temp") {
+                let _ = remove_file(db_directory.join(filepath));
             }
         }
 

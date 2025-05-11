@@ -41,7 +41,7 @@ impl ResultSetMetadataAdapter for EmbeddedMetadata {
             .fields()
             .lock()
             .map_err(|_| SQLException {})?
-            .get(column as usize - 1)
+            .get(column as usize)
             .cloned())
     }
 

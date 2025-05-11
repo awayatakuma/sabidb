@@ -141,7 +141,7 @@ mod integration_tests {
         let mut planner = db.planner.unwrap();
         let cmd = "select sid, sname, did, dname, cid, title from students, depts, courses";
         let s = planner
-            .create_query_planner(cmd.to_string(), tx)
+            .create_query_planner(&cmd.to_string(), tx)
             .unwrap()
             .lock()
             .unwrap()
@@ -211,7 +211,7 @@ mod integration_tests {
 
         let qry = "select a, b, i, j from T,TT where a=i";
         let p = planner
-            .create_query_planner(qry.to_string(), tx.clone())
+            .create_query_planner(&qry.to_string(), tx.clone())
             .unwrap();
         let s = p.lock().unwrap().open().unwrap();
         let mut locked_s = s.lock().unwrap();
