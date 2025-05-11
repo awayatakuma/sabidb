@@ -88,7 +88,7 @@ Thanks :)
 Sample data is stored in studentdb. If you use this database, you can try queries without creating tables and inserting data.
 
 ```
-cargo run --bin embedded --
+cargo run --bin embedded
 ```
 or
 ```
