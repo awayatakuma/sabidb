@@ -306,7 +306,7 @@ impl BTPage {
         let mut i = self.get_num_recs()?;
         while i > slot {
             self.copy_record(i - 1, i)?;
-            i = -1;
+            i -= 1;
         }
         self.set_num_recs(self.get_num_recs()? + 1)?;
         Ok(())
