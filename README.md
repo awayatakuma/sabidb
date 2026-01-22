@@ -11,6 +11,8 @@ Rust implementation of SimpleDB from [Database Design and Implementation](https:
 
 This application is only for local runtime.
 
+![sabidb_basic](./sabidb_cropped.gif 'sabidb_basic')
+
 ## Roadmap
 
 This roadmap is referred to  [SamehadaDB/README.md at master · ryogrid/SamehadaDB](https://github.com/ryogrid/SamehadaDB/blob/master/README.md "SamehadaDB/README.md at master · ryogrid/SamehadaDB")
