@@ -73,20 +73,26 @@ impl UpdatePlanner for BasicUpdatePlanner {
             self.mdm.clone(),
         )?));
         let sp = SelectPlan::new(p, data.pred());
-        let s = sp.open()?;
+
+        let us = sp
+            .open()?
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .to_update_scan()?;
 
         let mut count = 0;
-        while s.lock().map_err(|_| "failed to get lock")?.next()? {
-            let val = data.new_val().evaluate(s.clone())?;
-            s.lock()
-                .map_err(|_| "failed to get lock")?
-                .to_update_scan()?
-                .lock()
+
+        while us.lock().map_err(|_| "failed to get lock")?.next()? {
+            let val = data.new_val().evaluate_with_update_scan(us.clone())?;
+
+            us.lock()
                 .map_err(|_| "failed to get lock")?
                 .set_val(data.target_field(), val)?;
+
             count += 1;
         }
-        s.lock().map_err(|_| "failed to get lock")?.close()?;
+
+        us.lock().map_err(|_| "failed to get lock")?.close()?;
 
         Ok(count)
     }

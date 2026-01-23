@@ -78,7 +78,7 @@ impl BTreeDir {
         let newslot = 1 + self.contents.find_slot_before(&e.data_val())?;
         self.contents
             .insert_dir(newslot, e.data_val(), e.block_number())?;
-        if self.contents.is_full()? {
+        if !self.contents.is_full()? {
             return Ok(None);
         }
         let level = self.contents.get_flag()?;
@@ -90,7 +90,9 @@ impl BTreeDir {
 
     fn find_child_block(&self, searchkey: &Constant) -> Result<BlockId, String> {
         let mut slot = self.contents.find_slot_before(searchkey)?;
-        if self.contents.get_data_val(slot + 1)?.eq(searchkey) {
+        if slot + 1 < self.contents.get_num_recs()?
+            && self.contents.get_data_val(slot + 1)?.eq(searchkey)
+        {
             slot += 1;
         }
 

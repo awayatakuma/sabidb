@@ -77,6 +77,8 @@ fn print_result_set(mut result: EmbeddedResultSet) -> Result<i32, SQLException> 
         print!("{:-<width$}", "", width = w as usize + 1);
     }
     println!();
+
+    result.before_first()?;
     let mut c = 0;
     while result.next().unwrap() {
         c += 1;

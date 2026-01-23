@@ -42,6 +42,14 @@ impl<'a> EmbeddedResultSet<'a> {
 impl<'a> ResultSetAdapter for EmbeddedResultSet<'a> {
     type ResultSetMetadata = EmbeddedMetadata;
 
+    fn before_first(&self) -> Result<(), crate::rdbc::sql_exception::SQLException> {
+        self.s
+            .lock()
+            .map_err(|_| SQLException {})?
+            .before_first()
+            .map_err(|_| SQLException {})
+    }
+
     fn next(&self) -> Result<bool, crate::rdbc::sql_exception::SQLException> {
         self.s
             .lock()

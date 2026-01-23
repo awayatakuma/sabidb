@@ -313,41 +313,41 @@ impl BTPage {
     }
 
     fn copy_record(&self, from: i32, to: i32) -> Result<(), String> {
-        let sch = self
+        let fields: Vec<String> = self
             .layout
             .lock()
             .map_err(|_| "failed to get lock")?
-            .schema();
-        for fldname in sch
+            .schema()
             .lock()
             .map_err(|_| "failed to get lock")?
             .fields()
             .lock()
             .map_err(|_| "failed to get lock")?
-            .iter()
-        {
-            self.set_val(to, fldname.clone(), self.get_val(from, fldname.clone())?)?;
+            .clone();
+        for fldname in fields {
+            let val = self.get_val(from, fldname.clone())?;
+
+            self.set_val(to, fldname, val)?;
         }
         Ok(())
     }
 
     fn transfer_recs(&self, slot: i32, dest: &mut BTPage) -> Result<(), String> {
         let mut destslot = 0;
+        let fields: Vec<String> = self
+            .layout
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .schema()
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .fields()
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .clone();
         while slot < self.get_num_recs()? {
             dest.insert(destslot)?;
-            let sch = self
-                .layout
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .schema();
-            for fldname in sch
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .fields()
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .iter()
-            {
+            for fldname in &fields {
                 dest.set_val(
                     destslot,
                     fldname.clone(),

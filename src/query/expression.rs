@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::record::schema::Schema;
+use crate::{query::update_scan::UpdateScan, record::schema::Schema};
 
 use super::{constant::Constant, scan::Scan};
 
@@ -36,6 +36,19 @@ impl Expression {
     }
 
     pub fn evaluate(&self, s: Arc<Mutex<dyn Scan>>) -> Result<Constant, String> {
+        if let Some(val) = self.val.clone() {
+            Ok(val)
+        } else {
+            s.lock()
+                .map_err(|_| "failed to get lock")?
+                .get_val(&self.fldname.as_ref().cloned().unwrap())
+        }
+    }
+
+    pub fn evaluate_with_update_scan(
+        &self,
+        s: Arc<Mutex<dyn UpdateScan>>,
+    ) -> Result<Constant, String> {
         if let Some(val) = self.val.clone() {
             Ok(val)
         } else {

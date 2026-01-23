@@ -133,6 +133,7 @@ impl UpdatePlanner for IndexUpdatePlanner {
         while us.next()? {
             let newval = data.new_val().evaluate(s.clone())?;
             let oldval = us.get_val(&fldname)?;
+            us.set_val(fldname.clone(), newval.clone())?;
 
             if let Some(ref mut idx) = idx {
                 let rid = us.get_rid()?;
