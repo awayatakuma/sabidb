@@ -15,7 +15,7 @@ use crate::{
         basic_query_planner::BasicQueryPlanner, basic_update_planner::BasicUpdatePlanner,
         planner::Planner,
     },
-    tx::transaction::Transaction,
+    tx::{concurrency::lock_table::LockTable, transaction::Transaction},
 };
 
 const BLOCK_SISE: i32 = 400;
@@ -25,6 +25,7 @@ pub struct SimpleDB {
     fm: Arc<Mutex<FileManager>>,
     lm: Arc<Mutex<LogManager>>,
     bm: Arc<Mutex<BufferManager>>,
+    lt: Arc<Mutex<LockTable>>,
     mdm: Option<Arc<Mutex<MetadataManager>>>,
     pub planner: Option<Planner>,
 }
@@ -40,10 +41,12 @@ impl SimpleDB {
         let bm = Arc::new(Mutex::new(
             BufferManager::new(fm.clone(), lm.clone(), buffsize).unwrap(),
         ));
+        let lt = Arc::new(Mutex::new(LockTable::new()));
         Self {
             fm,
             lm,
             bm,
+            lt,
             mdm: None,
             planner: None,
         }
@@ -118,10 +121,19 @@ impl SimpleDB {
         self.bm.clone()
     }
 
+    pub fn lock_table(&self) -> Arc<Mutex<LockTable>> {
+        self.lt.clone()
+    }
+
     pub fn new_tx(&self) -> Arc<Mutex<Transaction>> {
         Arc::new(Mutex::new(
-            Transaction::new_from_managers(self.fm.clone(), self.lm.clone(), self.bm.clone())
-                .unwrap(),
+            Transaction::new_from_managers(
+                self.fm.clone(),
+                self.lm.clone(),
+                self.bm.clone(),
+                self.lt.clone(),
+            )
+            .unwrap(),
         ))
     }
 }
