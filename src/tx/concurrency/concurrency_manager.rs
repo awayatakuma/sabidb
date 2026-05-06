@@ -8,54 +8,51 @@ use crate::file::block_id::BlockId;
 
 use super::lock_table::{LockAbortException, LockTable};
 use chrono::Utc;
-use lazy_static::lazy_static;
 
 const MAX_TIME: i64 = 10_000; // 10 seconds
 
-lazy_static! {
-    static ref LOCK_TABLE: Arc<Mutex<LockTable>> = Arc::new(Mutex::new(LockTable::new()));
-}
-
 #[derive(Debug, Clone)]
 pub struct ConcurrencyManager {
+    lt: Arc<Mutex<LockTable>>,
     locks: Arc<Mutex<HashMap<BlockId, char>>>,
 }
 
 impl ConcurrencyManager {
-    pub fn new() -> Self {
+    pub fn new(lt: Arc<Mutex<LockTable>>) -> Self {
         ConcurrencyManager {
+            lt,
             locks: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
     pub fn s_lock(&self, blk: &BlockId) -> Result<(), String> {
-        if self
-            .locks
-            .lock()
-            .map_err(|_| "failed to get lock")?
-            .get(blk)
-            .is_none()
-        {
+        let mut locks = self.locks.lock().map_err(|_| "failed to get lock")?;
+        if locks.get(blk).is_none() {
             self.s_lock_internal(blk).map_err(|e| e.to_string())?;
-
-            self.locks
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .insert(blk.clone(), 'S');
+            locks.insert(blk.clone(), 'S');
         }
         Ok(())
     }
 
     pub fn x_lock(&self, blk: &BlockId) -> Result<(), String> {
-        if !self.has_x_lock(blk)? {
+        let mut locks = self.locks.lock().map_err(|_| "failed to get lock")?;
+        if !self.has_x_lock_internal(&locks, blk) {
+            // Need to release locks before calling s_lock or s_lock_internal to avoid deadlock
+            // But wait, x_lock should ideally call s_lock_internal directly if needed
+            drop(locks);
             self.s_lock(blk)?;
+            let mut locks = self.locks.lock().map_err(|_| "failed to get lock")?;
             self.x_lock_internal(blk).map_err(|e| e.to_string())?;
-            self.locks
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .insert(blk.clone(), 'X');
+            locks.insert(blk.clone(), 'X');
         }
         Ok(())
+    }
+
+    fn has_x_lock_internal(&self, locks: &HashMap<BlockId, char>, blk: &BlockId) -> bool {
+        if let Some(c) = locks.get(blk) {
+            return *c == 'X';
+        }
+        false
     }
 
     // This function corresponds to s_lock in LockTable in the original implementation
@@ -63,7 +60,7 @@ impl ConcurrencyManager {
         let timestamp = Utc::now().timestamp_millis();
 
         while !Self::waiting_too_long(timestamp) {
-            if let Ok(lock_table) = LOCK_TABLE.lock() {
+            if let Ok(lock_table) = self.lt.lock() {
                 if !lock_table.has_x_lock(blk).map_err(|_| LockAbortException)? {
                     let val = lock_table
                         .get_lock_val(blk)
@@ -88,7 +85,7 @@ impl ConcurrencyManager {
         let timestamp = Utc::now().timestamp_millis();
 
         while !Self::waiting_too_long(timestamp) {
-            if let Ok(lock_table) = LOCK_TABLE.lock() {
+            if let Ok(lock_table) = self.lt.lock() {
                 if !lock_table
                     .has_other_s_locks(blk)
                     .map_err(|_| LockAbortException)?
@@ -113,7 +110,7 @@ impl ConcurrencyManager {
 
         // `unlock`操作を実行し、エラーがあれば返す
         for (blk, _) in locks.iter() {
-            LOCK_TABLE
+            self.lt
                 .lock()
                 .map_err(|_| "failed to get lock")?
                 .unlock(blk)
@@ -125,17 +122,8 @@ impl ConcurrencyManager {
     }
 
     fn has_x_lock(&self, blk: &BlockId) -> Result<bool, String> {
-        let locktype = self
-            .locks
-            .lock()
-            .map_err(|_| "failed to get lock")?
-            .get(blk)
-            .cloned();
-        if let Some(c) = locktype {
-            Ok(c == 'X')
-        } else {
-            Ok(false)
-        }
+        let locks = self.locks.lock().map_err(|_| "failed to get lock")?;
+        Ok(self.has_x_lock_internal(&locks, blk))
     }
 
     fn waiting_too_long(starttime: i64) -> bool {
@@ -167,6 +155,7 @@ mod tests {
                 db_a.file_manager(),
                 db_a.log_mgr(),
                 db_a.buffer_manager(),
+                db_a.lock_table(),
             )
             .unwrap();
             let blk1 = BlockId::new("testfile".to_string(), 1);
@@ -195,6 +184,7 @@ mod tests {
                 db_b.file_manager(),
                 db_b.log_mgr(),
                 db_b.buffer_manager(),
+                db_b.lock_table(),
             )
             .unwrap();
             let blk1 = BlockId::new("testfile".to_string(), 1);
@@ -222,6 +212,7 @@ mod tests {
                 db_c.file_manager(),
                 db_c.log_mgr(),
                 db_c.buffer_manager(),
+                db_c.lock_table(),
             )
             .unwrap();
             let blk1 = BlockId::new("testfile".to_string(), 1);

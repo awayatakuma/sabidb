@@ -1,2 +1,2 @@
 pub mod concurrency_manager;
-mod lock_table;
+pub mod lock_table;

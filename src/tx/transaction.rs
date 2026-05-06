@@ -8,7 +8,8 @@ use crate::{
 use lazy_static::lazy_static;
 
 use super::{
-    buffer_list::BufferList, concurrency::concurrency_manager::ConcurrencyManager,
+    buffer_list::BufferList,
+    concurrency::{concurrency_manager::ConcurrencyManager, lock_table::LockTable},
     recovery::recovery_manager::RecoveryManager,
 };
 
@@ -32,11 +33,12 @@ impl Transaction {
         fm: Arc<Mutex<FileManager>>,
         lm: Arc<Mutex<LogManager>>,
         bm: Arc<Mutex<BufferManager>>,
+        lt: Arc<Mutex<LockTable>>,
     ) -> Result<Self, String> {
         let txnum = Self::next_tx_number()?;
         let mut tran = Transaction {
             recovery_manager: None,
-            concurrent_manager: Arc::new(Mutex::new(ConcurrencyManager::new())),
+            concurrent_manager: Arc::new(Mutex::new(ConcurrencyManager::new(lt))),
             buffer_manager: bm.clone(),
             file_manager: fm,
             txnum: txnum,
@@ -128,6 +130,10 @@ impl Transaction {
         Ok(())
     }
 
+    pub fn tx_num(&self) -> i32 {
+        self.txnum
+    }
+
     pub fn get_int(&self, blk: &BlockId, offset: usize) -> Result<i32, String> {
         self.concurrent_manager
             .lock()
@@ -181,11 +187,9 @@ impl Transaction {
             .x_lock(blk)?;
 
         let mut binding = self.mybuffers.lock().map_err(|_| "failed to get lock")?;
-        let mut buff = binding
+        let buff_arc = binding
             .get_buffer(blk)
-            .ok_or("you access to a buffer that does not exist")?
-            .lock()
-            .map_err(|_| "failed to get lock")?;
+            .ok_or("you access to a buffer that does not exist")?;
 
         let lsn = if ok_to_log {
             self.recovery_manager
@@ -193,10 +197,12 @@ impl Transaction {
                 .unwrap()
                 .lock()
                 .map_err(|_| "failed to get lock")?
-                .set_int(&mut buff, offset as usize, val)?
+                .set_int(buff_arc.clone(), offset as i32)?
         } else {
             -1
         };
+
+        let mut buff = buff_arc.lock().map_err(|_| "failed to get lock")?;
         let p = buff.contents();
         p.set_int(offset, val)?;
         buff.set_modified(self.txnum, lsn);
@@ -216,11 +222,9 @@ impl Transaction {
             .x_lock(blk)?;
 
         let mut binding = self.mybuffers.lock().map_err(|_| "failed to get lock")?;
-        let mut buff = binding
+        let buff_arc = binding
             .get_buffer(blk)
-            .ok_or("you access to a buffer that does not exist")?
-            .lock()
-            .map_err(|_| "failed to get lock")?;
+            .ok_or("you access to a buffer that does not exist")?;
 
         let lsn = if ok_to_log {
             self.recovery_manager
@@ -228,10 +232,12 @@ impl Transaction {
                 .unwrap()
                 .lock()
                 .map_err(|_| "failed to get lock")?
-                .set_string(&mut buff, offset as usize, val.clone())?
+                .set_string(buff_arc.clone(), offset as i32)?
         } else {
             -1
         };
+
+        let mut buff = buff_arc.lock().map_err(|_| "failed to get lock")?;
         let p = buff.contents();
         p.set_string(offset, &val)?;
         buff.set_modified(self.txnum, lsn);

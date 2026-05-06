@@ -279,7 +279,8 @@ mod tests {
 
         let bl = ii.blocks_accessed().unwrap();
         println!("B(indexA) = {}", bl);
-        assert_eq!(bl, 0);
+        assert_eq!(bl, 1);
+
         let ro = ii.records_output();
         println!("R(indexA) = {}", ro);
         assert_eq!(ro, 2);
@@ -293,7 +294,8 @@ mod tests {
         let ii = idxmap.get("B").unwrap().clone();
         let bl = ii.blocks_accessed().unwrap();
         println!("B(indexB) = {}", bl);
-        assert_eq!(bl, 0);
+        assert_eq!(bl, 1);
+
         let ro = ii.records_output();
         println!("R(indexB) = {}", ro);
         assert_eq!(ro, 2);

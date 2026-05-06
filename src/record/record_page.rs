@@ -196,6 +196,9 @@ impl RecordPage {
     }
 
     fn offset(&self, slot: i32) -> Result<usize, String> {
+        if slot < 0 {
+            return Err(format!("invalid slot number: {}", slot));
+        }
         let ret = slot
             * self
                 .layout

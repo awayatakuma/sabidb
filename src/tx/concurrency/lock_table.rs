@@ -6,6 +6,7 @@ use std::{
 
 use crate::file::block_id::BlockId;
 
+#[derive(Debug)]
 pub struct LockTable {
     pub(crate) locks: Arc<Mutex<HashMap<BlockId, i32>>>,
 }

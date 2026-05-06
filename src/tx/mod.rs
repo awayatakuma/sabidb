@@ -1,4 +1,4 @@
 mod buffer_list;
-mod concurrency;
+pub mod concurrency;
 mod recovery;
 pub mod transaction;
