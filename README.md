@@ -11,7 +11,7 @@ Rust implementation of SimpleDB from [Database Design and Implementation](https:
 
 This application is only for local runtime.
 
-![sabidb_basic](./sabidb_cropped.gif 'sabidb_basic')
+![sabidb_basic](./sabidb_demo.gif 'sabidb_demo')
 
 ## Roadmap
 
@@ -20,15 +20,15 @@ This roadmap is referred to  [SamehadaDB/README.md at master · ryogrid/Samehada
 Thanks :)
 
 - [x] Predicates on Seq Scan
-- [x] Multiple Item on Predicate: AND, OR
+- [x] Multiple Item on Predicate: AND (OR is not supported yet)
 - [] Predicates: <, >, <=, >=
 - [] Null
 - [] Predicates: NOT
-- [] Delete Tuple
-- [] Update Tuple
+- [x] Delete Tuple
+- [x] Update Tuple
 - [] LIMIT / OFFSET
 - [x] Varchar
-- [] Persistent Catalog
+- [x] Persistent Catalog
 - [ ] Updating of Table Schema 
 - [x] Latches
 - [x] Transactions
@@ -42,7 +42,7 @@ Thanks :)
   - [x] Hash Index
     - Hash index can be used only equal(=) operator is specified to index having columns
     - Thread safe but serialized (not supported concurrent access)
-  - [x] SkipList Index
+  - [ ] SkipList Index
   - [x] B-tree Index
   - [ ] Logging And Recovery Of Index Data
 - [ ] JOIN
@@ -62,7 +62,7 @@ Thanks :)
     - predicate including OR operation, NOT, IS NULL
     - projection including aggregation
     - LIMIT, ORDER BY
-- [] Statistics Data for Optimizer
+- [x] Statistics Data for Optimizer
 - [ ] TRANSACTION Statement on SQL
   - This includes adding support of multi statements (multi statements is not suported on SQL now)
 - [ ] AS clause
@@ -177,21 +177,49 @@ create index emp_idx on emp(empno)
 ```
 
 
-##### Query sample
+## Verified Example SQLs
+
+The following SQL commands are verified to work correctly, including value-level data integrity for updates and deletes:
 
 ```sql
-sabidb>select sid, sname, majorid, gradyear from students
-sid     sname      majorid  gradyear  
---------------------------------------
-      1 joe              10      2021 
-      2 amy              20      2020 
-      3 max              10      2022 
-      4 sue              20      2022 
-      5 bob              30      2020 
-      6 kim              20      2020 
-      7 art              30      2021 
-      8 pat              20      2019 
-      9 lee              10      2021 
-transaction 2 commited
-Rows: 9
+-- 1. Create tables
+create table students(sid int, sname varchar(9), majorid int, gradyear int)
+create table depts(did int, dname varchar(8))
+
+-- 2. Create index
+create index majorid_idx on students(majorid)
+
+-- 3. Insert data
+insert into students(sid, sname, majorid, gradyear) values (1, 'joe', 10, 2021)
+insert into students(sid, sname, majorid, gradyear) values (2, 'amy', 20, 2020)
+insert into students(sid, sname, majorid, gradyear) values (3, 'max', 10, 2022)
+insert into students(sid, sname, majorid, gradyear) values (4, 'sue', 20, 2022)
+insert into students(sid, sname, majorid, gradyear) values (5, 'bob', 30, 2020)
+insert into depts(did, dname) values (10, 'compsci')
+insert into depts(did, dname) values (20, 'math')
+insert into depts(did, dname) values (30, 'drama')
+
+-- 4. Basic Select
+select sid, sname, majorid, gradyear from students
+
+-- 5. Select with Where clause
+select sid, sname from students where majorid = 10
+
+-- 6. Join query
+select sname, dname from students, depts where majorid = did
+
+-- 7. View creation and selection
+create view cs_students as select sid, sname from students where majorid = 10
+select sid, sname from cs_students
+
+-- 8. Multiple conditions (AND)
+select sname, dname from students, depts where majorid = did and gradyear = 2021
+
+-- 9. Update (Verified to modify disk values)
+update students set gradyear = 2023 where sid = 1
+select sid, sname, gradyear from students where sid = 1
+
+-- 10. Delete
+delete from students where sid = 5
+select sid, sname from students
 ```

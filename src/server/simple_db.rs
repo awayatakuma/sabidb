@@ -54,6 +54,7 @@ impl SimpleDB {
 
     pub fn new(dirname: &Path) -> Self {
         let mut db = Self::new_with_sizes(dirname, BLOCK_SISE, BUFFER_SISE);
+        print_logo();
         let tx = db.new_tx();
         let is_new = db.fm.lock().unwrap().is_new();
         if is_new {

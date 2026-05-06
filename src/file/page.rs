@@ -20,18 +20,19 @@ impl Page {
     }
 
     pub fn get_int(&self, offset: usize) -> Result<i32, String> {
-        let arr: [u8; 4] = self
-            .bb
-            .lock()
-            .map_err(|_| "failed to get lock")?
-            .get(offset..offset + INTEGER_BYTES as usize)
-            .ok_or("failed to access a buffer".to_string())?
+        let bb = self.bb.lock().map_err(|_| "failed to get lock")?;
+        let end = offset.checked_add(INTEGER_BYTES as usize)
+            .ok_or_else(|| format!("offset {} is too large", offset))?;
+        
+        if end > bb.len() {
+            return Err(format!("Page::get_int boundary error: offset={}, end={}, buffer_len={}", offset, end, bb.len()));
+        }
+        
+        let arr: [u8; 4] = bb.get(offset..end)
+            .ok_or_else(|| format!("failed to access buffer at offset {}", offset))?
             .try_into()
             .map_err(|_| "failed to convert slice")?;
-        Ok(i32::from_be_bytes(
-            arr.try_into()
-                .map_err(|_| "failed to convert slice into i32")?,
-        ))
+        Ok(i32::from_be_bytes(arr))
     }
 
     pub fn set_int(&mut self, offset: usize, n: i32) -> Result<(), String> {
