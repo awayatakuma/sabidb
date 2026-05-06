@@ -1,1 +1,15 @@
 /target
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.bak
+.env
+
+# Database data files
+sabidb/*
+!sabidb/studentdb/
