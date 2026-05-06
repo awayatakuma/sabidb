@@ -81,7 +81,15 @@ Thanks :)
 - [ ] Making Usable from OR Mapper of One Web Framework Such as Django (Python) on Simple Application Scope
   - implementation of DB driver/connector for Python is needed (Or supporting major RDBMS compatible NW I/F) 
 
-## How to try
+## Development
+
+### Requirements
+- Rust toolchain (stable)
+
+### Running Tests
+```bash
+cargo test
+```
 
 ### Embedded
 
