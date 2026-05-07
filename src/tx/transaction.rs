@@ -1,11 +1,10 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, atomic::{AtomicI32, Ordering}};
 
 use crate::{
     buffer::buffer_manager::BufferManager,
     file::{block_id::BlockId, file_manager::FileManager},
     log::log_manager::LogManager,
 };
-use lazy_static::lazy_static;
 
 use super::{
     buffer_list::BufferList,
@@ -14,28 +13,26 @@ use super::{
 };
 
 const END_OF_FILE: i32 = -1;
-lazy_static! {
-    static ref next_tx_num: Arc<Mutex<i32>> = Arc::new(Mutex::new(0));
-}
+static NEXT_TX_NUM: AtomicI32 = AtomicI32::new(0);
 
 #[derive(Debug, Clone)]
 pub struct Transaction {
     recovery_manager: Option<Arc<Mutex<RecoveryManager>>>,
     concurrent_manager: Arc<Mutex<ConcurrencyManager>>,
     buffer_manager: Arc<Mutex<BufferManager>>,
-    file_manager: Arc<Mutex<FileManager>>,
+    file_manager: Arc<FileManager>,
     txnum: i32,
     mybuffers: Arc<Mutex<BufferList>>,
 }
 
 impl Transaction {
     pub fn new_from_managers(
-        fm: Arc<Mutex<FileManager>>,
+        fm: Arc<FileManager>,
         lm: Arc<Mutex<LogManager>>,
         bm: Arc<Mutex<BufferManager>>,
         lt: Arc<Mutex<LockTable>>,
     ) -> Result<Self, String> {
-        let txnum = Self::next_tx_number()?;
+        let txnum = Self::next_tx_number();
         let mut tran = Transaction {
             recovery_manager: None,
             concurrent_manager: Arc::new(Mutex::new(ConcurrencyManager::new(lt))),
@@ -252,8 +249,6 @@ impl Transaction {
             .s_lock(&dummyblk)?;
         let ret = self
             .file_manager
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .len(&filename)?;
         Ok(ret)
     }
@@ -266,8 +261,6 @@ impl Transaction {
             .x_lock(&dummyblk)?;
         let ret = self
             .file_manager
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .append(&filename)?;
         Ok(ret)
     }
@@ -275,8 +268,6 @@ impl Transaction {
     pub fn block_size(&self) -> Result<i32, String> {
         Ok(self
             .file_manager
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .block_size())
     }
 
@@ -288,9 +279,7 @@ impl Transaction {
             .available())
     }
 
-    fn next_tx_number() -> Result<i32, String> {
-        let mut num = next_tx_num.lock().map_err(|_| "failed to get lock")?;
-        *num += 1;
-        Ok(*num)
+    fn next_tx_number() -> i32 {
+        NEXT_TX_NUM.fetch_add(1, Ordering::SeqCst) + 1
     }
 }

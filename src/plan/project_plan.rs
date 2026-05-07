@@ -58,9 +58,7 @@ impl ProjectPlan {
             schema
                 .add(
                     &fld,
-                    Arc::new(Mutex::new(
-                        p.lock().map_err(|_| "failed to get lock")?.schema()?,
-                    )),
+                    &p.lock().map_err(|_| "failed to get lock")?.schema()?,
                 )
                 .unwrap();
         }

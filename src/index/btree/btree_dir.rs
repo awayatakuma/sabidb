@@ -9,7 +9,7 @@ use super::{btree_page::BTPage, dir_entry::DirEntry};
 
 pub struct BTreeDir {
     tx: Arc<Mutex<Transaction>>,
-    layout: Arc<Mutex<Layout>>,
+    layout: Layout,
     contents: BTPage,
     filename: String,
 }
@@ -18,7 +18,7 @@ impl BTreeDir {
     pub fn new(
         tx: Arc<Mutex<Transaction>>,
         blk: BlockId,
-        layout: Arc<Mutex<Layout>>,
+        layout: Layout,
     ) -> Result<Self, String> {
         let filename = blk.file_name();
         let contents = BTPage::new(tx.clone(), blk, layout.clone())?;

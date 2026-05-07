@@ -87,7 +87,7 @@ impl Term {
         None
     }
 
-    pub fn applies_to(&self, sch: Arc<Mutex<Schema>>) -> Result<bool, String> {
-        Ok(self.lhs.applies_to(sch.clone())? && self.rhs.applies_to(sch.clone())?)
+    pub fn applies_to(&self, sch: &Schema) -> Result<bool, String> {
+        Ok(self.lhs.applies_to(sch)? && self.rhs.applies_to(sch)?)
     }
 }

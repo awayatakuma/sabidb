@@ -14,7 +14,7 @@ pub struct MultibufferProductScan {
     rhsscan: Option<Arc<Mutex<dyn Scan>>>,
     prodscan: Option<Arc<Mutex<dyn Scan>>>,
     filename: String,
-    layout: Arc<Mutex<Layout>>,
+    layout: Layout,
     chunksize: i32,
     nextblknum: i32,
     filesize: i32,
@@ -25,7 +25,7 @@ impl MultibufferProductScan {
         tx: Arc<Mutex<Transaction>>,
         lhsscan: Arc<Mutex<dyn Scan>>,
         tblname: String,
-        layout: Arc<Mutex<Layout>>,
+        layout: Layout,
     ) -> Result<Self, String> {
         let filename = format!("{}.tbl", tblname);
         let filesize = tx

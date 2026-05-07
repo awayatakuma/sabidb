@@ -11,14 +11,14 @@ pub const USED: i32 = 1;
 pub struct RecordPage {
     tx: Arc<Mutex<Transaction>>,
     blk: BlockId,
-    layout: Arc<Mutex<Layout>>,
+    layout: Layout,
 }
 
 impl RecordPage {
     pub fn new(
         tx: Arc<Mutex<Transaction>>,
         blk: BlockId,
-        layout: Arc<Mutex<Layout>>,
+        layout: Layout,
     ) -> Result<Self, String> {
         tx.lock().map_err(|_| "failed to get lock")?.pin(&blk)?;
         Ok(RecordPage {
@@ -32,8 +32,6 @@ impl RecordPage {
         let fldpos = self.offset(slot)?
             + self
                 .layout
-                .lock()
-                .map_err(|_| "failed to get lock")?
                 .offset(&fldname)?;
 
         let ret = self
@@ -49,8 +47,6 @@ impl RecordPage {
         let fldpos = self.offset(slot)?
             + self
                 .layout
-                .lock()
-                .map_err(|_| "failed to get lock")?
                 .offset(&fldname)?;
 
         let ret = self
@@ -66,8 +62,6 @@ impl RecordPage {
         let fldpos = self.offset(slot)?
             + self
                 .layout
-                .lock()
-                .map_err(|_| "failed to get lock")?
                 .offset(&fldname)?;
 
         self.tx
@@ -82,8 +76,6 @@ impl RecordPage {
         let fldpos = self.offset(slot)?
             + self
                 .layout
-                .lock()
-                .map_err(|_| "failed to get lock")?
                 .offset(&fldname)?;
 
         self.tx
@@ -106,11 +98,7 @@ impl RecordPage {
             tx.set_int(&self.blk, self.offset(slot)?, EMPTY, false)?;
             let fldnames = self
                 .layout
-                .lock()
-                .map_err(|_| "failed to get lock")?
                 .schema()
-                .lock()
-                .map_err(|_| "failed to get lock")?
                 .fields()
                 .lock()
                 .map_err(|_| "failed to get lock")?
@@ -120,16 +108,10 @@ impl RecordPage {
                 let fldpos = self.offset(slot)?
                     + self
                         .layout
-                        .lock()
-                        .map_err(|_| "failed to get lock")?
                         .offset(fldname)?;
                 if self
                     .layout
-                    .lock()
-                    .map_err(|_| "failed to get lock")?
                     .schema()
-                    .lock()
-                    .map_err(|_| "failed to get lock")?
                     .field_type(fldname)?
                     == INTEGER
                 {
@@ -202,8 +184,6 @@ impl RecordPage {
         let ret = slot
             * self
                 .layout
-                .lock()
-                .map_err(|_| "failed to get lock")?
                 .slot_size();
         Ok(ret as usize)
     }
@@ -230,17 +210,15 @@ mod tests {
         let mut sch = Schema::new();
         sch.add_int_field(&"A".to_string()).unwrap();
         sch.add_string_field(&"B".to_string(), 9).unwrap();
-        let layout = Arc::new(Mutex::new(
-            Layout::new_from_schema(Arc::new(Mutex::new(sch))).unwrap(),
-        ));
+        let layout = Layout::new_from_schema(sch).unwrap();
 
         {
-            let binding = layout.lock().unwrap().schema().lock().unwrap().fields();
+            let binding = layout.schema().fields();
             let binding = binding.lock().unwrap();
             let fldnames = binding.iter();
 
             for fldname in fldnames {
-                let offset = layout.lock().unwrap().offset(fldname).unwrap();
+                let offset = layout.offset(fldname).unwrap();
                 if fldname == "A" {
                     assert_eq!(offset, 4)
                 } else if fldname == "B" {

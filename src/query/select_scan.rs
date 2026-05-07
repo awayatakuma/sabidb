@@ -66,7 +66,7 @@ impl Scan for SelectScan {
         self.s.lock().map_err(|_| "failed to get lock")?.close()
     }
 
-    fn to_update_scan(&mut self) -> Result<Arc<Mutex<(dyn UpdateScan + 'static)>>, String> {
+    fn to_update_scan(&mut self) -> Result<Arc<Mutex<dyn UpdateScan + 'static >>, String> {
         Ok(Arc::new(Mutex::new(self.clone())))
     }
 

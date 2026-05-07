@@ -66,7 +66,7 @@ impl Scan for IndexSelectScan {
         Ok(())
     }
 
-    fn to_update_scan(&mut self) -> Result<Arc<Mutex<(dyn UpdateScan + 'static)>>, String> {
+    fn to_update_scan(&mut self) -> Result<Arc<Mutex<dyn UpdateScan + 'static >>, String> {
         Err("Unexpected downcast".to_string())
     }
 

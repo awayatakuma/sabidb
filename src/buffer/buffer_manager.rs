@@ -35,7 +35,7 @@ pub struct BufferManager {
 
 impl BufferManager {
     pub fn new(
-        fm: Arc<Mutex<FileManager>>,
+        fm: Arc<FileManager>,
         lm: Arc<Mutex<LogManager>>,
         numbuffer: i32,
     ) -> Result<Self, String> {

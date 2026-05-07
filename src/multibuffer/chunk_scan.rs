@@ -8,14 +8,14 @@ use crate::{
 };
 
 pub struct ChunkScan {
-    buffs: Vec<Arc<RecordPage>>,
+    buffs: Vec<RecordPage>,
     tx: Arc<Mutex<Transaction>>,
     filename: String,
-    layout: Arc<Mutex<Layout>>,
+    layout: Layout,
     startbnum: i32,
     endbnum: i32,
     currentbnum: i32,
-    rp: Option<Arc<RecordPage>>,
+    rp: Option<RecordPage>,
     currentslot: i32,
 }
 
@@ -23,14 +23,14 @@ impl ChunkScan {
     pub fn new(
         tx: Arc<Mutex<Transaction>>,
         filename: String,
-        layout: Arc<Mutex<Layout>>,
+        layout: Layout,
         startbnum: i32,
         endbnum: i32,
     ) -> Result<Self, String> {
         let mut buffs = vec![];
         for i in startbnum..=endbnum {
             let blk = BlockId::new(filename.clone(), i);
-            buffs.push(Arc::new(RecordPage::new(tx.clone(), blk, layout.clone())?));
+            buffs.push(RecordPage::new(tx.clone(), blk, layout.clone())?);
         }
         let mut ret = ChunkScan {
             buffs: buffs,
@@ -92,11 +92,7 @@ impl Scan for ChunkScan {
     fn get_val(&self, fldname: &String) -> Result<crate::query::constant::Constant, String> {
         if self
             .layout
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .schema()
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .field_type(fldname)?
             == INTEGER
         {
@@ -108,11 +104,7 @@ impl Scan for ChunkScan {
 
     fn has_field(&self, fldname: &String) -> Result<bool, String> {
         self.layout
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .schema()
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .has_field(fldname)
     }
 

@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::{
     constants::INTEGER_BYTES,
@@ -6,7 +6,7 @@ use crate::{
 };
 
 pub struct LogIterator {
-    fm: Arc<Mutex<FileManager>>,
+    fm: Arc<FileManager>,
     blk: BlockId,
     p: Page,
     current_pos: usize,
@@ -17,10 +17,7 @@ impl Iterator for LogIterator {
     type Item = Result<Vec<u8>, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let block_size = match self.fm.lock().map_err(|_| "failed to get lock") {
-            Ok(fm) => fm.block_size() as usize,
-            Err(e) => return Some(Err(e.to_string())),
-        };
+        let block_size = self.fm.block_size() as usize;
 
         if !(self.current_pos < block_size || self.blk.number() > 0) {
             return None;
@@ -43,12 +40,10 @@ impl Iterator for LogIterator {
 }
 
 impl LogIterator {
-    pub fn new(fm: Arc<Mutex<FileManager>>, blk: BlockId) -> Result<Self, String> {
-        let mut locked_fm = fm.lock().map_err(|_| "failed to get lock")?;
-        let mut p = Page::new_from_blocksize(locked_fm.block_size() as usize);
-        let _ = locked_fm.read(&blk, &mut p);
+    pub fn new(fm: Arc<FileManager>, blk: BlockId) -> Result<Self, String> {
+        let mut p = Page::new_from_blocksize(fm.block_size() as usize);
+        let _ = fm.read(&blk, &mut p);
         let boundary = p.get_int(0).unwrap() as usize;
-        drop(locked_fm);
         Ok(Self {
             fm,
             blk,
@@ -61,8 +56,6 @@ impl LogIterator {
     fn move_to_block(&mut self, blk: BlockId) -> Result<(), String> {
         let _ = self
             .fm
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .read(&blk, &mut self.p);
         self.boundary = self.p.get_int(0).unwrap() as usize;
         self.current_pos = self.boundary;

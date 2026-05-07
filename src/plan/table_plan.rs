@@ -12,7 +12,7 @@ use super::plan::Plan;
 pub struct TablePlan {
     tblname: String,
     tx: Arc<Mutex<Transaction>>,
-    layout: Arc<Mutex<Layout>>,
+    layout: Layout,
     si: StatInfo,
 }
 
@@ -38,11 +38,7 @@ impl Plan for TablePlan {
     fn schema(&self) -> Result<crate::record::schema::Schema, String> {
         Ok(self
             .layout
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .schema()
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .clone())
     }
 }
@@ -53,11 +49,9 @@ impl TablePlan {
         tblname: String,
         md: Arc<Mutex<MetadataManager>>,
     ) -> Result<TablePlan, String> {
-        let layout = Arc::new(Mutex::new(
-            md.lock()
+        let layout = md.lock()
                 .map_err(|_| "failed to get lock")?
-                .get_layout(tblname.clone(), tx.clone())?,
-        ));
+                .get_layout(tblname.clone(), tx.clone())?;
         let si = md.lock().map_err(|_| "failed to get lock")?.get_stat_info(
             tblname.clone(),
             layout.clone(),

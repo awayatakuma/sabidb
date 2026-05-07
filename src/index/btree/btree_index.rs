@@ -21,8 +21,8 @@ use super::{btree_dir::BTreeDir, btree_leaf::BTreeLeaf, btree_page::BTPage};
 
 pub struct BTreeIndex {
     tx: Arc<Mutex<Transaction>>,
-    dir_layout: Arc<Mutex<Layout>>,
-    leaf_layout: Arc<Mutex<Layout>>,
+    dir_layout: Layout,
+    leaf_layout: Layout,
     leaftbl: String,
     leaf: Option<BTreeLeaf>,
     rootblk: BlockId,
@@ -32,7 +32,7 @@ impl BTreeIndex {
     pub fn new(
         tx: Arc<Mutex<Transaction>>,
         idxname: String,
-        leaf_layout: Arc<Mutex<Layout>>,
+        leaf_layout: Layout,
     ) -> Result<Self, String> {
         let leaftbl = format!("{}leaf", idxname);
         let leaftblsize = tx
@@ -48,27 +48,19 @@ impl BTreeIndex {
             node.format(&blk, -1)?;
         }
 
-        let mut dirsch = Schema::new();
+        let dirsch = Schema::new();
         dirsch.add(
             &"block".to_string(),
-            leaf_layout
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .schema(),
+            &leaf_layout.schema(),
         )?;
 
         dirsch.add(
             &"dataval".to_string(),
-            leaf_layout
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .schema(),
+            &leaf_layout.schema(),
         )?;
 
-        let dirsch = Arc::new(Mutex::new(dirsch));
-
         let dirtbl = format!("{}dir", idxname);
-        let dir_layout = Arc::new(Mutex::new(Layout::new_from_schema(dirsch.clone())?));
+        let dir_layout = Layout::new_from_schema(dirsch.clone())?;
 
         let rootblk = BlockId::new(dirtbl.clone(), 0);
         if tx
@@ -82,10 +74,7 @@ impl BTreeIndex {
                 .append(dirtbl)?;
             let mut node = BTPage::new(tx.clone(), rootblk.clone(), dir_layout.clone())?;
             node.format(&rootblk, 0)?;
-            let fldtype = dirsch
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .field_type(&"dataval".to_string())?;
+            let fldtype = dirsch.field_type(&"dataval".to_string())?;
             let minval = if fldtype == INTEGER {
                 Constant::new_from_i32(i32::MIN)
             } else if fldtype == VARCHAR {

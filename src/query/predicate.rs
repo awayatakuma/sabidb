@@ -56,10 +56,10 @@ impl Predicate {
         factor
     }
 
-    pub fn select_sub_pred(&self, sch: Arc<Mutex<Schema>>) -> Result<Option<Predicate>, String> {
+    pub fn select_sub_pred(&self, sch: &Schema) -> Result<Option<Predicate>, String> {
         let mut result = Predicate::new();
         for t in &self.terms {
-            if t.applies_to(sch.clone())? {
+            if t.applies_to(&sch)? {
                 // Todo check if t can be cloned
                 result.terms.push(t.clone());
             }
@@ -73,18 +73,18 @@ impl Predicate {
 
     pub fn join_sub_pred(
         &self,
-        sch1: Arc<Mutex<Schema>>,
-        sch2: Arc<Mutex<Schema>>,
+        sch1: &Schema,
+        sch2: &Schema,
     ) -> Result<Option<Predicate>, String> {
         let mut result = Predicate::new();
         let mut newsch = Schema::new();
-        newsch.add_all(sch1.clone())?;
-        newsch.add_all(sch2.clone())?;
-        let newsch = Arc::new(Mutex::new(newsch));
+        newsch.add_all(sch1)?;
+        newsch.add_all(sch2)?;
+        let newsch = newsch;
         for t in &self.terms {
-            if !t.applies_to(sch1.clone())?
-                && !t.applies_to(sch2.clone())?
-                && t.applies_to(newsch.clone())?
+            if !t.applies_to(&sch1)?
+                && !t.applies_to(&sch2)?
+                && t.applies_to(&newsch)?
             {
                 // Todo check if t can be cloned
                 result.terms.push(t.clone());

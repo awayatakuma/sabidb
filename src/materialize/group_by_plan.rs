@@ -8,7 +8,7 @@ pub struct GroupByPlan {
     p: Arc<Mutex<dyn Plan>>,
     groupfields: Vec<String>,
     aggfns: Vec<Arc<Mutex<dyn AggregationFn>>>,
-    sch: Arc<Mutex<Schema>>,
+    sch: Schema,
 }
 
 impl GroupByPlan {
@@ -21,14 +21,14 @@ impl GroupByPlan {
         let sortplan = SortPlan::new(tx, p, groupfields.clone())?;
         let mut sch = Schema::new();
         for fldname in groupfields.iter() {
-            sch.add(fldname, Arc::new(Mutex::new(sortplan.schema()?)))?;
+            sch.add(fldname, &sortplan.schema()?)?;
         }
 
         Ok(GroupByPlan {
             p: Arc::new(Mutex::new(sortplan)),
             groupfields: groupfields,
             aggfns: aggfns,
-            sch: Arc::new(Mutex::new(sch)),
+            sch: sch,
         })
     }
 }
@@ -81,6 +81,6 @@ impl Plan for GroupByPlan {
     }
 
     fn schema(&self) -> Result<Schema, String> {
-        Ok(self.sch.lock().map_err(|_| "failed to get lock")?.clone())
+        Ok(self.sch.clone())
     }
 }

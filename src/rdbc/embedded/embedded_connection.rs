@@ -50,7 +50,7 @@ impl<'a> ConnectionAdapter<'a> for EmbeddedConnection {
 
     fn create_statement(
         &'a mut self,
-    ) -> Result<EmbeddedStatement, crate::rdbc::sql_exception::SQLException> {
+    ) -> Result<EmbeddedStatement<'a>, crate::rdbc::sql_exception::SQLException> {
         Ok(EmbeddedStatement::new(self))
     }
 

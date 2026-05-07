@@ -75,12 +75,8 @@ impl Plan for ProductPlan {
 impl ProductPlan {
     pub fn new(p1: Arc<Mutex<dyn Plan>>, p2: Arc<Mutex<dyn Plan>>) -> Result<Self, String> {
         let mut sch = Schema::new();
-        sch.add_all(Arc::new(Mutex::new(
-            p1.lock().map_err(|_| "failed to get lock")?.schema()?,
-        )))?;
-        sch.add_all(Arc::new(Mutex::new(
-            p2.lock().map_err(|_| "failed to get lock")?.schema()?,
-        )))?;
+        sch.add_all(&p1.lock().map_err(|_| "failed to get lock")?.schema()?)?;
+        sch.add_all(&p2.lock().map_err(|_| "failed to get lock")?.schema()?)?;
         Ok(ProductPlan {
             p1: p1,
             p2: p2,

@@ -27,8 +27,8 @@ impl MergeJoinPlan {
         let p2 = SortPlan::new(tx, p2, sortlist2)?;
 
         let mut sch = Schema::new();
-        sch.add_all(Arc::new(Mutex::new(p1.schema()?)))?;
-        sch.add_all(Arc::new(Mutex::new(p2.schema()?)))?;
+        sch.add_all(&p1.schema()?)?;
+        sch.add_all(&p2.schema()?)?;
 
         Ok(MergeJoinPlan {
             p1: Arc::new(Mutex::new(p1)),

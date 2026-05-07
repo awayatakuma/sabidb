@@ -218,7 +218,7 @@ impl<'a> Parser<'a> {
             self.lex.eat_delim(',')?;
             let schema2 = self.field_defs()?;
             schema
-                .add_all(Arc::new(Mutex::new(schema2)))
+                .add_all(&schema2)
                 .map_err(|_| super::lexer::BadSyntaxException)?;
         }
         return Ok(schema);

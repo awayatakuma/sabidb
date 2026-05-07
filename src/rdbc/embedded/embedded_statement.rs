@@ -18,7 +18,7 @@ impl<'a> StatementAdapter<'a> for EmbeddedStatement<'a> {
     fn execute_query(
         &'a mut self,
         qry: &String,
-    ) -> Result<EmbeddedResultSet, crate::rdbc::sql_exception::SQLException> {
+    ) -> Result<EmbeddedResultSet<'a>, crate::rdbc::sql_exception::SQLException> {
         let tx = self.conn.get_transaction();
         let pln = self
             .conn

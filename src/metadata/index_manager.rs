@@ -17,15 +17,15 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct IndexManager {
-    layout: Arc<Mutex<Layout>>,
-    table_manager: Arc<Mutex<TableManager>>,
+    layout: Layout,
+    table_manager: Arc<TableManager>,
     stat_manager: Arc<Mutex<StatManager>>,
 }
 
 impl IndexManager {
     pub fn new(
         is_new: bool,
-        table_manager: Arc<Mutex<TableManager>>,
+        table_manager: Arc<TableManager>,
         stat_manager: Arc<Mutex<StatManager>>,
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<Self, String> {
@@ -35,16 +35,10 @@ impl IndexManager {
             sch.add_string_field(&"tablename".to_string(), MAX_NAME)?;
             sch.add_string_field(&"fieldname".to_string(), MAX_NAME)?;
             table_manager
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .create_table("idxcat".to_string(), Arc::new(Mutex::new(sch)), tx.clone())?;
+                .create_table("idxcat".to_string(), sch, tx.clone())?;
         }
-        let layout = Arc::new(Mutex::new(
-            table_manager
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .get_layout("idxcat".to_string(), tx.clone())?,
-        ));
+        let layout = table_manager
+                .get_layout("idxcat".to_string(), tx.clone())?;
 
         Ok(IndexManager {
             layout: layout,
@@ -54,7 +48,7 @@ impl IndexManager {
     }
 
     pub fn create_index(
-        &mut self,
+        &self,
         idxname: String,
         tblname: String,
         fldname: String,
@@ -71,7 +65,7 @@ impl IndexManager {
     }
 
     pub fn get_index_info(
-        &mut self,
+        &self,
         tblname: String,
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<HashMap<String, IndexInfo>, String> {
@@ -81,22 +75,14 @@ impl IndexManager {
             if ts.get_string(&"tablename".to_string())?.eq(&tblname) {
                 let idxname = ts.get_string(&"indexname".to_string())?;
                 let fldname = ts.get_string(&"fieldname".to_string())?;
-                let tbl_layout = Arc::new(Mutex::new(
-                    self.table_manager
-                        .lock()
-                        .map_err(|_| "failed to get lock")?
-                        .get_layout(tblname.clone(), tx.clone())?,
-                ));
+                let tbl_layout = self.table_manager
+                        .get_layout(tblname.clone(), tx.clone())?;
                 let tblsi = self
                     .stat_manager
                     .lock()
                     .map_err(|_| "failed to get lock")?
                     .get_stat_info(tblname.clone(), tbl_layout.clone(), tx.clone())?;
-                let sch = tbl_layout
-                    .clone()
-                    .lock()
-                    .map_err(|_| "failed to get lock")?
-                    .schema();
+                let sch = tbl_layout.schema();
                 let ii = IndexInfo::new(idxname, fldname.clone(), sch, tx.clone(), tblsi)?;
                 ret.insert(fldname, ii);
             }

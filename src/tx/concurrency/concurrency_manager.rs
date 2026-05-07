@@ -35,7 +35,7 @@ impl ConcurrencyManager {
     }
 
     pub fn x_lock(&self, blk: &BlockId) -> Result<(), String> {
-        let mut locks = self.locks.lock().map_err(|_| "failed to get lock")?;
+        let locks = self.locks.lock().map_err(|_| "failed to get lock")?;
         if !self.has_x_lock_internal(&locks, blk) {
             // Need to release locks before calling s_lock or s_lock_internal to avoid deadlock
             // But wait, x_lock should ideally call s_lock_internal directly if needed

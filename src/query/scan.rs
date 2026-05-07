@@ -46,9 +46,7 @@ mod tests {
         let mut sch1 = Schema::new();
         sch1.add_int_field(&"A".to_string()).unwrap();
         sch1.add_string_field(&"B".to_string(), 9).unwrap();
-        let layout1 = Arc::new(Mutex::new(
-            Layout::new_from_schema(Arc::new(Mutex::new(sch1))).unwrap(),
-        ));
+        let layout1 = Layout::new_from_schema(sch1).unwrap();
         let mut us1 = TableScan::new(tx.clone(), "T".to_string(), layout1.clone()).unwrap();
 
         let n = 200;
@@ -103,9 +101,7 @@ mod tests {
         let mut sch1 = Schema::new();
         sch1.add_int_field(&"A".to_string()).unwrap();
         sch1.add_string_field(&"B".to_string(), 9).unwrap();
-        let layout1 = Arc::new(Mutex::new(
-            Layout::new_from_schema(Arc::new(Mutex::new(sch1))).unwrap(),
-        ));
+        let layout1 = Layout::new_from_schema(sch1).unwrap();
         let mut us1 = TableScan::new(tx.clone(), "T1".to_string(), layout1.clone()).unwrap();
 
         let n = 200;
@@ -122,9 +118,7 @@ mod tests {
         let mut sch2 = Schema::new();
         sch2.add_int_field(&"C".to_string()).unwrap();
         sch2.add_string_field(&"D".to_string(), 9).unwrap();
-        let layout2 = Arc::new(Mutex::new(
-            Layout::new_from_schema(Arc::new(Mutex::new(sch2))).unwrap(),
-        ));
+        let layout2 = Layout::new_from_schema(sch2).unwrap();
         let mut us2 = TableScan::new(tx.clone(), "T2".to_string(), layout2.clone()).unwrap();
 
         us2.before_first().unwrap();
