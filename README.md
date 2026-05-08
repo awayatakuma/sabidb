@@ -1,162 +1,69 @@
+<div align="center">
+
 # sabidb
 
-```
+```text
  ___    __    ____  ____  ____  ____ 
 / __)  /__\  (  _ \(_  _)(  _ \(  _ \
 \__ \ /(__)\  ) _ < _)(_  )(_) )) _ <
 (___/(__)(__)(____/(____)(____/(____/
 ```
 
-Rust implementation of SimpleDB from [Database Design and Implementation](https://link.springer.com/book/10.1007/978-3-030-33836-7 "Database Design and Implementation")
+**A Rust implementation of the SimpleDB database system.**
 
-This application is only for local runtime.
+[![CI](https://github.com/awayatakuma/sabidb/actions/workflows/ci.yml/badge.svg)](https://github.com/awayatakuma/sabidb/actions/workflows/ci.yml)
+![Rust](https://img.shields.io/badge/rust-stable-brightgreen.svg)
+
+Based on [Database Design and Implementation](https://link.springer.com/book/10.1007/978-3-030-33836-7) by Edward Sciore.
+
+</div>
+
+---
+
+## ✨ Features
+
+- **Robust SQL Support**: Execute DDL (CREATE TABLE/VIEW/INDEX) and DML (SELECT/INSERT/UPDATE/DELETE).
+- **ACID Transactions**: Full support for transactions with recovery from logs and checkpointing.
+- **Efficient Indexing**: Includes B-Tree and Hash index implementations for fast data retrieval.
+- **Advanced Query Planning**: Features both Basic and Heuristic (optimized) query planners.
+- **Embedded Database**: Lightweight and easy to use as an embedded library (similar to SQLite).
+- **Concurrency**: Multi-threaded access with proper latching and concurrency management.
+
+## 🎮 Demo
 
 ![sabidb_basic](./sabidb_demo.gif 'sabidb_demo')
 
-## Roadmap
-
-This roadmap is referred to  [SamehadaDB/README.md at master · ryogrid/SamehadaDB](https://github.com/ryogrid/SamehadaDB/blob/master/README.md "SamehadaDB/README.md at master · ryogrid/SamehadaDB")
-
-Thanks :)
-
-- [x] Predicates on Seq Scan
-- [x] Multiple Item on Predicate: AND (OR is not supported yet)
-- [] Predicates: <, >, <=, >=
-- [] Null
-- [] Predicates: NOT
-- [x] Delete Tuple
-- [x] Update Tuple
-- [] LIMIT / OFFSET
-- [x] Varchar
-- [x] Persistent Catalog
-- [ ] Updating of Table Schema 
-- [x] Latches
-- [x] Transactions
-- [x] Rollback When Abort Occurs
-- [x] Logging
-- [x] Checkpointing
-- [x] Simple Checkpointing (all transactions are blocked until finish of checkpointing)
-  - [ ] Fuzzy Checkpointing (ARIES)
-- [x] Recovery from Logs
-- [x] Index
-  - [x] Hash Index
-    - Hash index can be used only equal(=) operator is specified to index having columns
-    - Thread safe but serialized (not supported concurrent access)
-  - [ ] SkipList Index
-  - [x] B-tree Index
-  - [ ] Logging And Recovery Of Index Data
-- [ ] JOIN
-  - [x] INNER JOIN (Hash Join, Index Join, Nested Loop Join)
-    - Condition specified at ON clause should be composed of single item and can use equal(==) operator only
-  - [ ] OUTER JOIN
-  - [x] CROSS JOIN
-- [] Aggregations (COUNT, MAX, MIN, SUM on SELECT clause including Group by and Having)
-- [] Sort (ORDER BY clause)
-- [x] Concurrent Execution of Transactions
-- [x] Execution of Query with SQL string
-  - not supported multi queries on a request yet
-- [x] Frontend Impl as Embedded DB Library (like SQLite)
-- [ ] Deduplication of Result Records (Distinct)
-- [] Query Optimization (Selinger) 
-  - cases below are not supported now
-    - predicate including OR operation, NOT, IS NULL
-    - projection including aggregation
-    - LIMIT, ORDER BY
-- [x] Statistics Data for Optimizer
-- [ ] TRANSACTION Statement on SQL
-  - This includes adding support of multi statements (multi statements is not suported on SQL now)
-- [ ] AS clause
-- [ ] Nested Query
-- [ ] Predicates: IN
-- [ ] DB Connector (Driver) or Other Kind of Network Access Interface
-  - [ ] MySQL or PostgreSQL Compatible Protocol
-  - [] REST
-- [x] Deallocate and Reuse Page
-- [x] Optimization of INSERT
-- [ ] UNION clause
-- [x] Materialization
-  - Classes which offers functionality for materialization exists
-  - Now, HashJoinExecutor only do materialization with the classes 
-- [ ] Authentication
-- [ ] Making Usable from OR Mapper of One Web Framework Such as Django (Python) on Simple Application Scope
-  - implementation of DB driver/connector for Python is needed (Or supporting major RDBMS compatible NW I/F) 
-
-## Development
+## 🚀 Quick Start
 
 ### Requirements
-- Rust toolchain (stable)
+- [Rust toolchain](https://www.rust-lang.org/tools/install) (stable)
 
 ### Running Tests
+Verify the installation and implementation:
 ```bash
 cargo test
 ```
 
-### Embedded
-
-#### Using Samples
-
-Sample data is stored in studentdb. If you use this database, you can try queries without creating tables and inserting data.
-
-```
+### Run Embedded DB
+Start the embedded interactive shell:
+```bash
 cargo run --bin embedded
 ```
-or
-```
+
+Or connect to a specific database:
+```bash
 cargo run --bin embedded -- -d studentdb
 ```
 
-##### Sample queries
-
+#### Sample Queries
+Once in the `sabidb>` shell, you can try:
 ```sql
-sabidb>select sid, sname, majorid, gradyear from students
-sid     sname      majorid  gradyear  
---------------------------------------
-      1 joe              10      2021 
-      2 amy              20      2020 
-      3 max              10      2022 
-      4 sue              20      2022 
-      5 bob              30      2020 
-      6 kim              20      2020 
-      7 art              30      2021 
-      8 pat              20      2019 
-      9 lee              10      2021 
-transaction 2 commited
-Rows: 9
+select sid, sname, majorid, gradyear from students
 ```
 
-```sql
-sabidb>select sname, dname, title, prof, grade from students,depts, courses, sections, enrolls where sid=studentid and sectid=sectionid and cid=courseid and deptid=did
-sname      dname     title       prof      grade  
---------------------------------------------------
-joe        compsci   db systems  turing    A      
-sue        math      calculus    newton    B      
-joe        math      calculus    einstein  C      
-amy        math      calculus    einstein  B+     
-sue        drama     elocution   brando    A      
-kim        drama     elocution   brando    A      
-transaction 2 commited
-Rows: 6
-```
+## 📖 SQL Examples (Verified)
 
-
-#### Using a new database
-
-You can nominate your original database by `-d`.
-
-```
-cargo run --bin embedded -- -d <dbname>
-ex: cargo run --bin embedded -- -d <dbname>
-```
-
-##### Create tables and data
-
-You can find a comprehensive set of sample SQL commands to create tables and insert data in [docs/samples/setup.sql](./docs/samples/setup.sql).
-
-
-
-## SQL Examples (Verified)
-
-The following SQL scenarios are automatically verified by `cargo test` against both **Basic** and **Heuristic** planners, ensuring data integrity and persistence.
+These scenarios are automatically verified by `cargo test` against both **Basic** and **Heuristic** planners.
 
 ### 1. Data Definition (DDL)
 ```sql
@@ -186,13 +93,73 @@ select sid, sname from cs_students
 select sname, dname from students, depts where majorid = did and gradyear = 2021
 ```
 
-### Tips: Switching Planners
-You can choose between the simple default planner or the optimized heuristic planner by changing the initialization in your code (e.g., in `app/embedded/main.rs`):
+---
+
+## 🗺️ Roadmap
+
+This roadmap is based on the [SamehadaDB](https://github.com/ryogrid/SamehadaDB) roadmap. Special thanks to [ryogrid](https://github.com/ryogrid) for the inspiration! 🙏
+
+### SQL Features
+- [x] Predicates on Seq Scan
+- [x] Multiple Item on Predicate: AND (OR is not supported yet)
+- [ ] Predicates: `<`, `>`, `<=`, `>=`
+- [ ] Null
+- [ ] Predicates: NOT
+- [x] Delete Tuple
+- [x] Update Tuple
+- [ ] LIMIT / OFFSET
+- [x] Varchar
+- [ ] AS clause
+- [ ] Nested Query
+- [ ] Predicates: IN
+- [ ] DISTINCT
+- [ ] UNION clause
+
+### Core Engine
+- [x] Persistent Catalog
+- [ ] Updating of Table Schema 
+- [x] Latches (Thread safety)
+- [x] Transactions (ACID)
+- [x] Rollback When Abort Occurs
+- [x] Logging & Recovery from Logs
+- [x] Checkpointing (Simple)
+  - [ ] Fuzzy Checkpointing (ARIES)
+- [x] Deallocate and Reuse Page
+- [x] Materialization Support
+
+### Indexing
+- [x] Hash Index (Thread-safe, equals operator only)
+- [x] B-tree Index
+- [ ] SkipList Index
+- [ ] Logging And Recovery Of Index Data
+
+### Join Algorithms
+- [x] INNER JOIN (Hash Join, Index Join, Nested Loop Join)
+- [ ] OUTER JOIN
+- [x] CROSS JOIN
+
+### Optimization & Planning
+- [x] Statistics Data for Optimizer
+- [x] Heuristic Query Planner (supports Index Join/Select)
+- [ ] Query Optimization (Selinger)
+- [ ] TRANSACTION Statement on SQL (multi-statement support)
+
+### Connectivity
+- [x] Frontend Impl as Embedded DB Library
+- [ ] DB Connector (Driver) / Network Interface (MySQL/PostgreSQL Compatible)
+- [ ] REST API
+- [ ] ORM Support (e.g., Python/Django)
+
+---
+
+## 💡 Tips: Switching Planners
+
+You can choose between the simple default planner or the optimized heuristic planner in your code:
 
 ```rust
 // Use default Basic planner
 let db = SimpleDB::new(dbpath);
 
-// OR use optimized Heuristic planner (supports Index Join/Select)
+// OR use optimized Heuristic planner
 let db = SimpleDB::new_with_refined_planners(dbpath);
 ```
