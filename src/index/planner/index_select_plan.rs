@@ -25,7 +25,7 @@ impl IndexSelectPlan {
 }
 
 impl Plan for IndexSelectPlan {
-    fn open(&self) -> Result<Arc<Mutex<(dyn scan::Scan + 'static)>>, String> {
+    fn open(&self) -> Result<Arc<Mutex<dyn scan::Scan + 'static >>, String> {
         let s = self.p.lock().map_err(|_| "failed to get lock")?.open()?;
         // throws an exception if p is not a tableplan.
         let mut binding = s.lock().map_err(|_| "failed to get lock")?;
@@ -35,7 +35,7 @@ impl Plan for IndexSelectPlan {
             ts.clone(),
             idx,
             self.val.clone(),
-        ))))
+        )?)))
     }
     fn blocks_accessed(&self) -> Result<i32, String> {
         Ok(self.ii.blocks_accessed()? + self.records_output()?)

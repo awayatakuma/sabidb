@@ -20,13 +20,9 @@ impl IndexJoinPlan {
         ii: IndexInfo,
         joinfield: String,
     ) -> Result<Self, String> {
-        let mut sch = Schema::new();
-        sch.add_all(Arc::new(Mutex::new(
-            p1.lock().map_err(|_| "failed to get lock")?.schema()?,
-        )))?;
-        sch.add_all(Arc::new(Mutex::new(
-            p2.lock().map_err(|_| "failed to get lock")?.schema()?,
-        )))?;
+        let sch = Schema::new();
+        sch.add_all(&p1.lock().map_err(|_| "failed to get lock")?.schema()?)?;
+        sch.add_all(&p2.lock().map_err(|_| "failed to get lock")?.schema()?)?;
         Ok(IndexJoinPlan {
             p1: p1,
             p2: p2,
@@ -38,7 +34,7 @@ impl IndexJoinPlan {
 }
 
 impl Plan for IndexJoinPlan {
-    fn open(&self) -> Result<std::sync::Arc<std::sync::Mutex<(dyn scan::Scan + 'static)>>, String> {
+    fn open(&self) -> Result<std::sync::Arc<std::sync::Mutex<dyn scan::Scan + 'static >>, String> {
         let s1 = self.p1.lock().map_err(|_| "failed to get lock")?.open()?;
         let s2 = self.p2.lock().map_err(|_| "failed to get lock")?.open()?;
         // throws an exception if p is not a tableplan.
@@ -50,7 +46,7 @@ impl Plan for IndexJoinPlan {
             idx,
             self.joinfield.clone(),
             Arc::new(Mutex::new(ts.clone())),
-        ))))
+        )?)))
     }
 
     fn blocks_accessed(&self) -> Result<i32, String> {

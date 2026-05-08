@@ -17,12 +17,10 @@ impl MaterializePlan {
 
 impl Plan for MaterializePlan {
     fn open(&self) -> Result<Arc<Mutex<dyn crate::query::scan::Scan>>, String> {
-        let sch = Arc::new(Mutex::new(
-            self.srcplan
+        let sch = self.srcplan
                 .lock()
                 .map_err(|_| "failed to get lock")?
-                .schema()?,
-        ));
+                .schema()?;
         let temp = TempTable::new(self.tx.clone(), sch.clone())?;
         let src = self
             .srcplan
@@ -34,8 +32,6 @@ impl Plan for MaterializePlan {
         while locked_src.next()? {
             dest.lock().map_err(|_| "failed to get lock")?.insert()?;
             let flds = sch
-                .lock()
-                .map_err(|_| "failed to get lock")?
                 .fields()
                 .lock()
                 .map_err(|_| "failed to get lock")?
@@ -59,12 +55,12 @@ impl Plan for MaterializePlan {
     }
 
     fn blocks_accessed(&self) -> Result<i32, String> {
-        let layout = Layout::new_from_schema(Arc::new(Mutex::new(
+        let layout = Layout::new_from_schema(
             self.srcplan
                 .lock()
                 .map_err(|_| "failed to get lock")?
                 .schema()?,
-        )))?;
+        )?;
         let rpb = self
             .tx
             .lock()

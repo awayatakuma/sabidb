@@ -166,7 +166,7 @@ impl UpdatePlanner for IndexUpdatePlanner {
             .map_err(|_| "failed to get lock")?
             .create_table(
                 data.table_name(),
-                Arc::new(Mutex::new(data.new_schema())),
+                data.new_schema(),
                 tx.clone(),
             )?;
         Ok(0)

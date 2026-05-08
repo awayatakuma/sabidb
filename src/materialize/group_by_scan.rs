@@ -4,6 +4,8 @@ use crate::query::scan::Scan;
 
 use super::{aggregation_fn::AggregationFn, group_value::GroupValue};
 
+#[allow(dead_code)]
+#[allow(dead_code)]
 pub struct GroupByScan {
     s: Arc<Mutex<dyn Scan>>,
     groupfields: Vec<String>,

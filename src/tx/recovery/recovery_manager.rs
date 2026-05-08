@@ -2,7 +2,6 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     buffer::buffer_manager::BufferManager,
-    file::{block_id::BlockId, file_manager::FileManager},
     log::log_manager::LogManager,
 };
 
@@ -105,7 +104,7 @@ impl RecoveryManager {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
     use tempfile::TempDir;
 
     use crate::{
@@ -192,8 +191,8 @@ mod tests {
 
         let mut p0 = Page::new_from_blocksize(400);
         let mut p1 = Page::new_from_blocksize(400);
-        fm.lock().unwrap().read(&blk0, &mut p0).unwrap();
-        fm.lock().unwrap().read(&blk1, &mut p1).unwrap();
+        fm.read(&blk0, &mut p0).unwrap();
+        fm.read(&blk1, &mut p1).unwrap();
         pos = 0;
         for _ in 0..6 {
             assert_eq!(p0.get_int(pos).unwrap(), pos as i32);
@@ -208,9 +207,7 @@ mod tests {
     fn test_recovery_manager_2() {
         let temp_dir = TempDir::new().unwrap();
         let db = SimpleDB::new_with_sizes(temp_dir.path(), 400, 8);
-        let lm = db.log_mgr();
 
-        let bm = db.buffer_manager();
         let blk0 = BlockId::new("testfile".to_string(), 0);
         let blk1 = BlockId::new("testfile".to_string(), 1);
 
@@ -250,8 +247,8 @@ mod tests {
         let fm = db.file_manager();
         let mut p0 = Page::new_from_blocksize(400);
         let mut p1 = Page::new_from_blocksize(400);
-        fm.lock().unwrap().read(&blk0, &mut p0).unwrap();
-        fm.lock().unwrap().read(&blk1, &mut p1).unwrap();
+        fm.read(&blk0, &mut p0).unwrap();
+        fm.read(&blk1, &mut p1).unwrap();
         let mut pos = 0;
         for _ in 0..6 {
             assert_eq!(p0.get_int(pos).unwrap(), pos as i32);
@@ -263,7 +260,7 @@ mod tests {
     }
 
     fn print_values(
-        fm: &Arc<Mutex<FileManager>>,
+        fm: &Arc<FileManager>,
         blk0: &BlockId,
         blk1: &BlockId,
         msg: &str,
@@ -271,8 +268,8 @@ mod tests {
         println!("{}", msg);
         let mut p0 = Page::new_from_blocksize(400);
         let mut p1 = Page::new_from_blocksize(400);
-        fm.lock().unwrap().read(blk0, &mut p0).unwrap();
-        fm.lock().unwrap().read(blk1, &mut p1).unwrap();
+        fm.read(blk0, &mut p0).unwrap();
+        fm.read(blk1, &mut p1).unwrap();
         let mut pos = 0;
         for _ in 0..6 {
             print!("{} ", p0.get_int(pos).unwrap());

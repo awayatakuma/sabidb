@@ -7,6 +7,8 @@ struct CountFn {
     count: i32,
 }
 
+#[allow(dead_code)]
+#[allow(dead_code)]
 impl CountFn {
     pub fn new(fldname: String) -> Self {
         CountFn {

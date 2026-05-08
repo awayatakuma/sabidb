@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::{
     constants::INTEGER_BYTES,
@@ -9,7 +9,7 @@ use super::log_iterator::LogIterator;
 
 #[derive(Debug)]
 pub struct LogManager {
-    fm: Arc<Mutex<FileManager>>,
+    fm: Arc<FileManager>,
     logfile: String,
     logpage: Page,
     current_blk: BlockId,
@@ -18,22 +18,20 @@ pub struct LogManager {
 }
 
 impl LogManager {
-    pub fn new(fm: Arc<Mutex<FileManager>>, logfile: String) -> Result<Self, String> {
-        let mut locked_fm = fm.lock().map_err(|_| "failed to get lock")?;
-        let mut logpage = Page::new_from_blocksize(locked_fm.block_size() as usize);
-        let logsize = locked_fm.len(&logfile).unwrap();
+    pub fn new(fm: Arc<FileManager>, logfile: String) -> Result<Self, String> {
+        let mut logpage = Page::new_from_blocksize(fm.block_size() as usize);
+        let logsize = fm.len(&logfile).unwrap();
 
         let current_blk = if logsize == 0 {
-            let blk = locked_fm.append(&logfile).unwrap();
-            logpage.set_int(0, locked_fm.block_size() as i32)?;
-            let _ = locked_fm.write(&blk, &logpage);
+            let blk = fm.append(&logfile).unwrap();
+            logpage.set_int(0, fm.block_size() as i32)?;
+            let _ = fm.write(&blk, &logpage);
             blk
         } else {
             let blk = BlockId::new(logfile.clone().to_string(), logsize - 1);
-            let _ = locked_fm.read(&blk, &mut logpage);
+            let _ = fm.read(&blk, &mut logpage);
             blk
         };
-        drop(locked_fm);
         return Ok(LogManager {
             fm,
             logfile: logfile,
@@ -76,18 +74,15 @@ impl LogManager {
     }
 
     fn append_new_block(&mut self) -> Result<BlockId, String> {
-        let mut locked_fm = self.fm.lock().map_err(|_| "failed to get lock")?;
-        let blk = locked_fm.append(&self.logfile).unwrap();
-        self.logpage.set_int(0, locked_fm.block_size() as i32)?;
-        let _ = locked_fm.write(&blk, &self.logpage);
+        let blk = self.fm.append(&self.logfile).unwrap();
+        self.logpage.set_int(0, self.fm.block_size() as i32)?;
+        let _ = self.fm.write(&blk, &self.logpage);
         Ok(blk)
     }
 
     fn flush_internal(&mut self) -> Result<(), String> {
         let _ = self
             .fm
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .write(&self.current_blk, &self.logpage);
         self.last_save_lsn = self.latest_lsn;
         Ok(())
@@ -96,22 +91,21 @@ impl LogManager {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-
+    use std::sync::{Arc, Mutex};
     use tempfile::TempDir;
 
     use super::*;
     use crate::{file::file_manager::FileManager, server::simple_db::SimpleDB};
 
     // Helper function to create a temporary test file manager
-    fn create_test_file_manager() -> (Arc<Mutex<FileManager>>, TempDir) {
+    fn create_test_file_manager() -> (Arc<FileManager>, TempDir) {
         let temp_dir = TempDir::new().unwrap();
 
         (
-            Arc::new(Mutex::new(FileManager::new_from_blocksize(
+            Arc::new(FileManager::new_from_blocksize(
                 temp_dir.path(),
                 400,
-            ))),
+            )),
             temp_dir,
         )
     }
@@ -119,8 +113,9 @@ mod tests {
     fn print_log_records(lm: Arc<Mutex<LogManager>>, msg: String) {
         println!("{}", msg);
         let mut iter = lm.lock().unwrap().iterator().unwrap();
-        while let Some(rec) = iter.next() {
-            let p = Page::new_from_bytes(rec.unwrap());
+        while let Some(rec_res) = iter.next() {
+            let rec: Vec<u8> = rec_res.unwrap();
+            let p = Page::new_from_bytes(rec);
             let s = p.get_string(0).unwrap();
             let npos = Page::max_length(s.len());
             let val = p.get_int(npos).unwrap();

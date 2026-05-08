@@ -15,22 +15,22 @@ use super::{
     temp_table::TempTable,
 };
 
+#[allow(dead_code)]
 pub struct SortPlan {
     tx: Arc<Mutex<Transaction>>,
     p: Arc<Mutex<dyn Plan>>,
-    sch: Arc<Mutex<Schema>>,
+    sch: Schema,
     comp: RecordComparator,
 }
 
+#[allow(dead_code)]
 impl SortPlan {
     pub fn new(
         tx: Arc<Mutex<Transaction>>,
         p: Arc<Mutex<dyn Plan>>,
         sortfields: Vec<String>,
     ) -> Result<Self, String> {
-        let sch = Arc::new(Mutex::new(
-            p.lock().map_err(|_| "failed to get lock")?.schema()?,
-        ));
+        let sch = p.lock().map_err(|_| "failed to get lock")?.schema()?;
 
         Ok(SortPlan {
             tx: tx,
@@ -148,8 +148,6 @@ impl SortPlan {
         dest.lock().map_err(|_| "failed to get lock")?.insert()?;
         for fldname in self
             .sch
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .fields()
             .lock()
             .map_err(|_| "failed to get lock")?
@@ -202,6 +200,6 @@ impl Plan for SortPlan {
     }
 
     fn schema(&self) -> Result<Schema, String> {
-        Ok(self.sch.lock().map_err(|_| "failed to get lock")?.clone())
+        Ok(self.sch.clone())
     }
 }

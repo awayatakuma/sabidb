@@ -22,14 +22,14 @@ impl<'a> EmbeddedResultSet<'a> {
     ) -> Result<Self, SQLException> {
         let s = plan
             .lock()
-            .map_err(|_| SQLException {})?
+            .map_err(|e| SQLException::new(e.to_string()))?
             .open()
-            .map_err(|_| SQLException {})?;
+            .map_err(|e| SQLException::new(e.to_string()))?;
         let sch = Arc::new(Mutex::new(
             plan.lock()
-                .map_err(|_| SQLException {})?
+                .map_err(|e| SQLException::new(e.to_string()))?
                 .schema()
-                .map_err(|_| SQLException {})?,
+                .map_err(|e| SQLException::new(e.to_string()))?,
         ));
         Ok(EmbeddedResultSet {
             s: s,
@@ -45,35 +45,35 @@ impl<'a> ResultSetAdapter for EmbeddedResultSet<'a> {
     fn before_first(&self) -> Result<(), crate::rdbc::sql_exception::SQLException> {
         self.s
             .lock()
-            .map_err(|_| SQLException {})?
+            .map_err(|e| SQLException::new(e.to_string()))?
             .before_first()
-            .map_err(|_| SQLException {})
+            .map_err(|e| SQLException::new(e.to_string()))
     }
 
     fn next(&self) -> Result<bool, crate::rdbc::sql_exception::SQLException> {
         self.s
             .lock()
-            .map_err(|_| SQLException {})?
+            .map_err(|e| SQLException::new(e.to_string()))?
             .next()
-            .map_err(|_| SQLException {})
+            .map_err(|e| SQLException::new(e.to_string()))
     }
 
     fn get_int(&self, fldname: String) -> Result<i32, SQLException> {
         let fldname = fldname.to_lowercase();
         self.s
             .lock()
-            .map_err(|_| SQLException {})?
+            .map_err(|e| SQLException::new(e.to_string()))?
             .get_int(&fldname)
-            .map_err(|_| SQLException {})
+            .map_err(|e| SQLException::new(e.to_string()))
     }
 
     fn get_string(&self, fldname: String) -> Result<String, SQLException> {
         let fldname = fldname.to_lowercase();
         self.s
             .lock()
-            .map_err(|_| SQLException {})?
+            .map_err(|e| SQLException::new(e.to_string()))?
             .get_string(&fldname)
-            .map_err(|_| SQLException {})
+            .map_err(|e| SQLException::new(e.to_string()))
     }
 
     fn get_metadata(&self) -> Result<Self::ResultSetMetadata, SQLException> {
@@ -83,9 +83,9 @@ impl<'a> ResultSetAdapter for EmbeddedResultSet<'a> {
     fn close(&mut self) -> Result<(), SQLException> {
         self.s
             .lock()
-            .map_err(|_| SQLException {})?
+            .map_err(|e| SQLException::new(e.to_string()))?
             .close()
-            .map_err(|_| SQLException {})?;
+            .map_err(|e| SQLException::new(e.to_string()))?;
         self.conn.commit()?;
 
         Ok(())

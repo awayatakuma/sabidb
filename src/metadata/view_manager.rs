@@ -12,22 +12,21 @@ const MAX_VIEWDEF: i32 = 100;
 
 #[derive(Debug, Clone)]
 pub struct ViewManager {
-    table_manager: Arc<Mutex<TableManager>>,
+    table_manager: Arc<TableManager>,
 }
 
 impl ViewManager {
     pub fn new(
         is_new: bool,
-        tbl_manager: Arc<Mutex<TableManager>>,
+        tbl_manager: Arc<TableManager>,
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<Self, String> {
         if is_new {
-            let mut tbl_mgr = tbl_manager.lock().map_err(|_| "failed to get lock")?;
-            let mut sch = Schema::new();
+            let sch = Schema::new();
             sch.add_string_field(&"viewname".to_string(), MAX_NAME)?;
             sch.add_string_field(&"viewdef".to_string(), MAX_VIEWDEF)?;
-            let sch = Arc::new(Mutex::new(sch));
-            tbl_mgr.create_table("viewcat".to_string(), sch, tx.clone())?;
+            let sch = sch;
+            tbl_manager.create_table("viewcat".to_string(), sch, tx.clone())?;
         }
 
         Ok(ViewManager {
@@ -41,12 +40,8 @@ impl ViewManager {
         vdef: String,
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<(), String> {
-        let layout = Arc::new(Mutex::new(
-            self.table_manager
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .get_layout("viewcat".to_string(), tx.clone())?,
-        ));
+        let layout = self.table_manager
+                .get_layout("viewcat".to_string(), tx.clone())?;
         let mut ts = TableScan::new(tx.clone(), "viewcat".to_string(), layout)?;
 
         ts.insert()?;
@@ -62,12 +57,8 @@ impl ViewManager {
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<Option<String>, String> {
         let mut ret = None;
-        let layout = Arc::new(Mutex::new(
-            self.table_manager
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .get_layout("viewcat".to_string(), tx.clone())?,
-        ));
+        let layout = self.table_manager
+                .get_layout("viewcat".to_string(), tx.clone())?;
         let mut ts = TableScan::new(tx.clone(), "viewcat".to_string(), layout)?;
 
         while ts.next()? {

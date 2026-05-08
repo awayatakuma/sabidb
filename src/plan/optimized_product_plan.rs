@@ -4,6 +4,7 @@ use crate::{query::scan::Scan, record::schema::Schema};
 
 use super::{plan::Plan, product_plan::ProductPlan};
 
+#[allow(dead_code)]
 pub struct OptimizedProductPlan {
     bestplan: Arc<Mutex<dyn Plan>>,
 }

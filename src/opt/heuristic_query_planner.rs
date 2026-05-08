@@ -111,14 +111,35 @@ impl QueryPlanner for HeuristicQueryPlanner {
         data: QueryData,
         tx: Arc<Mutex<crate::tx::transaction::Transaction>>,
     ) -> Result<Arc<Mutex<dyn crate::plan::plan::Plan>>, String> {
+        let mut views = Vec::new();
         // Step 1:  Create a TablePlanner object for each mentioned table
         for tblname in data.tables() {
-            let tp = TablePlanner::new(tblname, data.pred(), tx.clone(), self.mdm.clone())?;
-            self.tableplanners.push(tp);
+            let viewdef = self
+                .mdm
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_view_def(tblname.clone(), tx.clone())?;
+            if let Some(vd) = viewdef {
+                let mut parser = crate::parse::parser::Parser::new(vd.as_str());
+                let viewdata = parser
+                    .query()
+                    .map_err(|e| format!("failed to parse view {}: {}", tblname, e))?;
+                let plan = self.create_plan(viewdata, tx.clone())?;
+                views.push(plan);
+            } else {
+                let tp = TablePlanner::new(tblname, data.pred(), tx.clone(), self.mdm.clone())?;
+                self.tableplanners.push(tp);
+            }
         }
 
         // Step 2:  Choose the lowest-size plan to begin the join order
-        let mut currentplan = self.get_lowest_select_plan()?;
+        let mut currentplan = if !self.tableplanners.is_empty() {
+            self.get_lowest_select_plan()?
+        } else if !views.is_empty() {
+            views.remove(0)
+        } else {
+            return Err("No tables or views specified".to_string());
+        };
 
         // Step 3:  Repeatedly add a plan to the join order
         while !self.tableplanners.is_empty() {
@@ -129,7 +150,15 @@ impl QueryPlanner for HeuristicQueryPlanner {
             }
         }
 
-        // Step 4.  Project on the field names and return
+        // Step 4: Add any remaining views
+        for vplan in views {
+            currentplan = Arc::new(Mutex::new(crate::plan::product_plan::ProductPlan::new(
+                currentplan,
+                vplan,
+            )?));
+        }
+
+        // Step 5.  Project on the field names and return
         Ok(Arc::new(Mutex::new(ProjectPlan::new(
             currentplan,
             data.fields(),

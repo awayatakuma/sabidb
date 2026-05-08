@@ -22,8 +22,8 @@ pub struct IndexInfo {
     idxname: String,
     fldname: String,
     tx: Arc<Mutex<Transaction>>,
-    tbl_schema: Arc<Mutex<Schema>>,
-    idx_layout: Option<Arc<Mutex<Layout>>>,
+    tbl_schema: Schema,
+    idx_layout: Option<Layout>,
     si: StatInfo,
 }
 
@@ -31,7 +31,7 @@ impl IndexInfo {
     pub fn new(
         idxname: String,
         fldname: String,
-        tbl_schema: Arc<Mutex<Schema>>,
+        tbl_schema: Schema,
         tx: Arc<Mutex<Transaction>>,
         si: StatInfo,
     ) -> Result<Self, String> {
@@ -43,7 +43,7 @@ impl IndexInfo {
             idx_layout: None,
             si: si,
         };
-        ret.idx_layout = Some(Arc::new(Mutex::new(ret.create_idx_layout()?)));
+        ret.idx_layout = Some(ret.create_idx_layout()?);
 
         Ok(ret)
     }
@@ -71,8 +71,6 @@ impl IndexInfo {
                 .idx_layout
                 .as_ref()
                 .unwrap()
-                .lock()
-                .map_err(|_| "failed to get lock")?
                 .slot_size();
         let num_blocks = self.si.records_output() / rpb;
         // Ok(hash_index::search_cost(num_blocks, rpb))
@@ -92,19 +90,19 @@ impl IndexInfo {
     }
 
     fn create_idx_layout(&self) -> Result<Layout, String> {
-        let mut sch = Schema::new();
+        let sch = Schema::new();
         sch.add_int_field(&"block".to_string())?;
         sch.add_int_field(&"id".to_string())?;
-        let tbl_schema = self.tbl_schema.lock().map_err(|_| "failed to get lock")?;
-        if tbl_schema.field_type(&self.fldname)? == INTEGER {
+        let tbl_sch = &self.tbl_schema;
+        if tbl_sch.field_type(&self.fldname)? == INTEGER {
             sch.add_int_field(&"dataval".to_string())?;
-        } else if tbl_schema.field_type(&self.fldname)? == VARCHAR {
-            let fldlen = tbl_schema.length(&self.fldname)?;
+        } else if tbl_sch.field_type(&self.fldname)? == VARCHAR {
+            let fldlen = tbl_sch.length(&self.fldname)?;
             sch.add_string_field(&"dataval".to_string(), fldlen)?;
         } else {
             panic!("an unexpected type");
         }
-        let ret = Layout::new_from_schema(Arc::new(Mutex::new(sch)))?;
+        let ret = Layout::new_from_schema(sch)?;
         Ok(ret)
     }
 }

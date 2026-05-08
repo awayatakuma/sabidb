@@ -70,12 +70,10 @@ impl Expression {
         self.fldname.clone()
     }
 
-    pub fn applies_to(&self, sch: Arc<Mutex<Schema>>) -> Result<bool, String> {
+    pub fn applies_to(&self, sch: &Schema) -> Result<bool, String> {
         if self.val.is_some() {
             return Ok(true);
         }
-        sch.lock()
-            .map_err(|_| "failed to get lock")?
-            .has_field(&self.fldname.clone().unwrap())
+        sch.has_field(&self.fldname.clone().unwrap())
     }
 }

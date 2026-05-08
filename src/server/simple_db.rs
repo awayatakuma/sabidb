@@ -22,7 +22,7 @@ const BLOCK_SISE: i32 = 400;
 const BUFFER_SISE: i32 = 8;
 
 pub struct SimpleDB {
-    fm: Arc<Mutex<FileManager>>,
+    fm: Arc<FileManager>,
     lm: Arc<Mutex<LogManager>>,
     bm: Arc<Mutex<BufferManager>>,
     lt: Arc<Mutex<LockTable>>,
@@ -32,9 +32,9 @@ pub struct SimpleDB {
 
 impl SimpleDB {
     pub fn new_with_sizes(dirname: &Path, blocksize: i32, buffsize: i32) -> Self {
-        let fm = Arc::new(Mutex::new(FileManager::new_from_blocksize(
+        let fm = Arc::new(FileManager::new_from_blocksize(
             &dirname, blocksize,
-        )));
+        ));
         let lm = Arc::new(Mutex::new(
             LogManager::new(fm.clone(), LOG_FILE.to_string()).unwrap(),
         ));
@@ -56,7 +56,7 @@ impl SimpleDB {
         let mut db = Self::new_with_sizes(dirname, BLOCK_SISE, BUFFER_SISE);
         print_logo();
         let tx = db.new_tx();
-        let is_new = db.fm.lock().unwrap().is_new();
+        let is_new = db.fm.is_new();
         if is_new {
             println!("creating new database")
         } else {
@@ -83,7 +83,7 @@ impl SimpleDB {
         print_logo();
 
         let tx = db.new_tx();
-        let is_new = db.fm.lock().unwrap().is_new();
+        let is_new = db.fm.is_new();
         if is_new {
             println!("creating new database")
         } else {
@@ -110,7 +110,7 @@ impl SimpleDB {
         self.mdm.clone().unwrap()
     }
 
-    pub fn file_manager(&self) -> Arc<Mutex<FileManager>> {
+    pub fn file_manager(&self) -> Arc<FileManager> {
         self.fm.clone()
     }
 

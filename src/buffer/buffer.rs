@@ -7,7 +7,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Buffer {
-    fm: Arc<Mutex<FileManager>>,
+    fm: Arc<FileManager>,
     lm: Arc<Mutex<LogManager>>,
     contents: Page,
     blk: Option<BlockId>,
@@ -17,9 +17,9 @@ pub struct Buffer {
 }
 
 impl Buffer {
-    pub fn new(fm: Arc<Mutex<FileManager>>, lm: Arc<Mutex<LogManager>>) -> Result<Self, String> {
+    pub fn new(fm: Arc<FileManager>, lm: Arc<Mutex<LogManager>>) -> Result<Self, String> {
         let page = Page::new_from_blocksize(
-            fm.lock().map_err(|_| "failed to get lock")?.block_size() as usize,
+            fm.block_size() as usize,
         );
         Ok(Self {
             fm,
@@ -57,9 +57,8 @@ impl Buffer {
 
     pub(crate) fn assign_to_block(&mut self, b: &BlockId) -> Result<(), String> {
         self.flush()?;
-        let mut fm = self.fm.lock().map_err(|_| "failed to get lock")?;
         self.blk = Some(b.clone());
-        fm.read(b, &mut self.contents)?;
+        self.fm.read(b, &mut self.contents)?;
         self.pins = 0;
         Ok(())
     }
@@ -68,8 +67,7 @@ impl Buffer {
         if self.txnum >= 0 {
             let mut lm = self.lm.lock().map_err(|_| "failed to get lock")?;
             lm.flush(self.lsn)?;
-            let mut fm = self.fm.lock().map_err(|_| "failed to get lock")?;
-            fm.write(&self.blk.clone().unwrap(), &self.contents)
+            self.fm.write(&self.blk.clone().unwrap(), &self.contents)
                 .map_err(|_| "failed to write")?
         }
         Ok(())

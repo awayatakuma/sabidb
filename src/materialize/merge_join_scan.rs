@@ -15,6 +15,8 @@ pub struct MergeJoinScan {
     joinval: Option<Constant>,
 }
 
+#[allow(dead_code)]
+#[allow(dead_code)]
 impl MergeJoinScan {
     pub fn new(
         s1: Arc<Mutex<dyn Scan>>,

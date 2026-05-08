@@ -23,13 +23,9 @@ impl MultibufferProductPlan {
         rhs: Arc<Mutex<dyn Plan>>,
     ) -> Result<Self, String> {
         let lhs = Arc::new(Mutex::new(MaterializePlan::new(lhs.clone(), tx.clone())));
-        let mut sch = Schema::new();
-        sch.add_all(Arc::new(Mutex::new(
-            lhs.lock().map_err(|_| "failed to get lock")?.schema()?,
-        )))?;
-        sch.add_all(Arc::new(Mutex::new(
-            rhs.lock().map_err(|_| "failed to get lock")?.schema()?,
-        )))?;
+        let sch = Schema::new();
+        sch.add_all(&lhs.lock().map_err(|_| "failed to get lock")?.schema()?)?;
+        sch.add_all(&rhs.lock().map_err(|_| "failed to get lock")?.schema()?)?;
 
         Ok(MultibufferProductPlan {
             tx,
@@ -41,9 +37,7 @@ impl MultibufferProductPlan {
 
     pub fn copy_records_from(&self, p: Arc<Mutex<dyn Plan>>) -> Result<TempTable, String> {
         let src = p.lock().map_err(|_| "failed to get lock")?.open()?;
-        let sch = Arc::new(Mutex::new(
-            p.lock().map_err(|_| "failed to get lock")?.schema()?,
-        ));
+        let sch = p.lock().map_err(|_| "failed to get lock")?.schema()?;
         let t = TempTable::new(self.tx.clone(), sch.clone())?;
         let dest = t
             .open()?
@@ -53,8 +47,6 @@ impl MultibufferProductPlan {
         while src.lock().map_err(|_| "failed to get lock")?.next()? {
             dest.lock().map_err(|_| "failed to get lock")?.insert()?;
             let flds = sch
-                .lock()
-                .map_err(|_| "failed to get lock")?
                 .fields()
                 .lock()
                 .map_err(|_| "failed to get lock")?

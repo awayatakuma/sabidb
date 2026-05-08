@@ -15,14 +15,14 @@ use crate::{
 pub struct BTPage {
     tx: Arc<Mutex<Transaction>>,
     currentblk: Option<BlockId>,
-    layout: Arc<Mutex<Layout>>,
+    layout: Layout,
 }
 
 impl BTPage {
     pub fn new(
         tx: Arc<Mutex<Transaction>>,
         currentblk: BlockId,
-        layout: Arc<Mutex<Layout>>,
+        layout: Layout,
     ) -> Result<Self, String> {
         tx.lock()
             .map_err(|_| "failed to get lock")?
@@ -113,11 +113,7 @@ impl BTPage {
             0,
             false,
         )?;
-        let recsize = self
-            .layout
-            .lock()
-            .map_err(|_| "failed to get lock")?
-            .slot_size();
+        let recsize = self.layout.slot_size();
         let mut pos = 2 * INTEGER_BYTES;
         while pos + recsize
             <= self
@@ -133,36 +129,19 @@ impl BTPage {
     }
 
     fn make_default_record(&self, blk: &BlockId, pos: i32) -> Result<(), String> {
-        let layout = self.layout.lock().map_err(|_| "failed to get lock")?;
-        let binding = layout
-            .schema()
-            .lock()
-            .map_err(|_| "failed to get lock")?
-            .fields();
+        let binding = self.layout.schema().fields();
         let binding = binding.lock().map_err(|_| "failed to get lock")?;
         let flds = binding.iter();
         for fldname in flds {
-            let offset = layout.offset(&fldname)?;
-            if layout
-                .schema()
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .field_type(fldname)?
-                == INTEGER
-            {
+            let offset = self.layout.offset(&fldname)?;
+            if self.layout.schema().field_type(fldname)? == INTEGER {
                 self.tx.lock().map_err(|_| "failed to get lock")?.set_int(
                     blk,
                     pos as usize + offset,
                     0,
                     false,
                 )?;
-            } else if layout
-                .schema()
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .field_type(fldname)?
-                == VARCHAR
-            {
+            } else if self.layout.schema().field_type(fldname)? == VARCHAR {
                 self.tx
                     .lock()
                     .map_err(|_| "failed to get lock")?
@@ -238,14 +217,7 @@ impl BTPage {
     }
 
     fn get_val(&self, slot: i32, fldname: String) -> Result<Constant, String> {
-        let fldtype = self
-            .layout
-            .lock()
-            .map_err(|_| "failed to get lock")?
-            .schema()
-            .lock()
-            .map_err(|_| "failed to get lock")?
-            .field_type(&fldname)?;
+        let fldtype = self.layout.schema().field_type(&fldname)?;
         if fldtype == INTEGER {
             Ok(Constant::new_from_i32(self.get_int(slot, fldname)?))
         } else if fldtype == VARCHAR {
@@ -274,14 +246,7 @@ impl BTPage {
     }
 
     fn set_val(&self, slot: i32, fldname: String, val: Constant) -> Result<(), String> {
-        let fldtype = self
-            .layout
-            .lock()
-            .map_err(|_| "failed to get lock")?
-            .schema()
-            .lock()
-            .map_err(|_| "failed to get lock")?
-            .field_type(&fldname)?;
+        let fldtype = self.layout.schema().field_type(&fldname)?;
         if fldtype == INTEGER {
             self.set_int(slot, fldname, val.as_int().unwrap())?;
         } else if fldtype == VARCHAR {
@@ -315,11 +280,7 @@ impl BTPage {
     fn copy_record(&self, from: i32, to: i32) -> Result<(), String> {
         let fields: Vec<String> = self
             .layout
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .schema()
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .fields()
             .lock()
             .map_err(|_| "failed to get lock")?
@@ -336,11 +297,7 @@ impl BTPage {
         let mut destslot = 0;
         let fields: Vec<String> = self
             .layout
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .schema()
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .fields()
             .lock()
             .map_err(|_| "failed to get lock")?
@@ -364,8 +321,6 @@ impl BTPage {
     fn fldpos(&self, slot: i32, fldname: String) -> Result<i32, String> {
         let offset = self
             .layout
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .offset(&fldname)?;
         let ret = self.slotpos(slot)? + offset as i32;
         Ok(ret)
@@ -374,8 +329,6 @@ impl BTPage {
     fn slotpos(&self, slot: i32) -> Result<i32, String> {
         let slotsize = self
             .layout
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .slot_size();
         Ok(INTEGER_BYTES + INTEGER_BYTES + (slot * slotsize))
     }

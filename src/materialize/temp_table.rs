@@ -16,19 +16,19 @@ lazy_static! {
 pub struct TempTable {
     tx: Arc<Mutex<Transaction>>,
     tblname: String,
-    layout: Arc<Mutex<Layout>>,
+    layout: Layout,
 }
 
 impl TempTable {
-    pub fn new(tx: Arc<Mutex<Transaction>>, sch: Arc<Mutex<Schema>>) -> Result<Self, String> {
+    pub fn new(tx: Arc<Mutex<Transaction>>, sch: Schema) -> Result<Self, String> {
         Ok(TempTable {
             tx: tx,
             tblname: next_table_name(),
-            layout: Arc::new(Mutex::new(Layout::new_from_schema(sch)?)),
+            layout: Layout::new_from_schema(sch)?,
         })
     }
 
-    pub fn open(&self) -> Result<Arc<Mutex<(dyn UpdateScan + 'static)>>, String> {
+    pub fn open(&self) -> Result<Arc<Mutex<dyn UpdateScan + 'static >>, String> {
         let mut s = TableScan::new(self.tx.clone(), self.tblname.clone(), self.layout.clone())?;
         s.to_update_scan()
     }
@@ -37,7 +37,7 @@ impl TempTable {
         self.tblname.clone()
     }
 
-    pub fn get_layout(&self) -> Arc<Mutex<Layout>> {
+    pub fn get_layout(&self) -> Layout {
         self.layout.clone()
     }
 }

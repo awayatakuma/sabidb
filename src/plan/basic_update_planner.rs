@@ -107,7 +107,7 @@ impl UpdatePlanner for BasicUpdatePlanner {
             .map_err(|_| "failed to get lock")?
             .create_table(
                 data.table_name(),
-                Arc::new(Mutex::new(data.new_schema())),
+                data.new_schema(),
                 tx,
             )?;
         Ok(0)

@@ -4,11 +4,13 @@ use crate::query::constant::Constant;
 
 use super::aggregation_fn::AggregationFn;
 
+#[allow(dead_code)]
 pub struct MaxFn {
     fldname: String,
     val: Option<Constant>,
 }
 
+#[allow(dead_code)]
 impl MaxFn {
     pub fn new(fldname: String) -> Self {
         MaxFn {

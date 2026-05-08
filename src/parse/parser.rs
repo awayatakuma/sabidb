@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use crate::{
     parse::lexer::BadSyntaxException,
     query::{constant::Constant, expression::Expression, predicate::Predicate, term::Term},
@@ -42,7 +40,7 @@ impl<'a> Parser<'a> {
         } else if self.lex.match_int_constant() {
             return Ok(Constant::new_from_i32(self.lex.eat_int_constant()?));
         } else {
-            return Err(BadSyntaxException);
+            return Err(BadSyntaxException::new("Expected constant"));
         }
     }
 
@@ -121,7 +119,9 @@ impl<'a> Parser<'a> {
         } else if self.lex.match_keyword("create") {
             self.create()
         } else {
-            return Err(BadSyntaxException);
+            return Err(BadSyntaxException::new(
+                "Expected insert, delete, update, or create command",
+            ));
         }
     }
 
@@ -134,7 +134,9 @@ impl<'a> Parser<'a> {
         } else if self.lex.match_keyword("index") {
             Ok(UpdateCommand::CreateIndex(self.create_index()?))
         } else {
-            return Err(BadSyntaxException);
+            return Err(BadSyntaxException::new(
+                "Expected table, view, or index after 'create'",
+            ));
         }
     }
 
@@ -213,13 +215,13 @@ impl<'a> Parser<'a> {
     }
 
     fn field_defs(&mut self) -> Result<Schema, super::lexer::BadSyntaxException> {
-        let mut schema = self.field_def()?;
+        let schema = self.field_def()?;
         if self.lex.match_delim(',') {
             self.lex.eat_delim(',')?;
             let schema2 = self.field_defs()?;
             schema
-                .add_all(Arc::new(Mutex::new(schema2)))
-                .map_err(|_| super::lexer::BadSyntaxException)?;
+                .add_all(&schema2)
+                .map_err(|_| super::lexer::BadSyntaxException::new("Failed to add all fields"))?;
         }
         return Ok(schema);
     }
@@ -230,20 +232,28 @@ impl<'a> Parser<'a> {
     }
 
     fn field_type(&mut self, fldname: String) -> Result<Schema, super::lexer::BadSyntaxException> {
-        let mut schema = Schema::new();
+        let schema = Schema::new();
         if self.lex.match_keyword("int") {
             self.lex.eat_keyword("int")?;
             schema
                 .add_int_field(&fldname)
-                .map_err(|_| super::lexer::BadSyntaxException)?;
-        } else {
+                .map_err(|e| super::lexer::BadSyntaxException {
+                    message: format!("Failed to add int field: {}", e),
+                })?;
+        } else if self.lex.match_keyword("varchar") {
             self.lex.eat_keyword("varchar")?;
             self.lex.eat_delim('(')?;
             let str_len = self.lex.eat_int_constant()?;
             self.lex.eat_delim(')')?;
             schema
                 .add_string_field(&fldname, str_len)
-                .map_err(|_| super::lexer::BadSyntaxException)?;
+                .map_err(|e| super::lexer::BadSyntaxException {
+                    message: format!("Failed to add varchar field: {}", e),
+                })?;
+        } else {
+            return Err(BadSyntaxException {
+                message: "Expected 'int' or 'varchar' field type".to_string(),
+            });
         }
 
         return Ok(schema);
@@ -377,5 +387,51 @@ mod tests {
         assert_eq!("tab_a", uc.table_name());
         assert_eq!("col_a", uc.field_name());
         assert_eq!("idx_a", uc.idx_name());
+    }
+
+    #[test]
+    fn test_exception_invalid_keyword() {
+        let mut p = Parser::new("invalid_cmd from T");
+        let res = p.update_cmd();
+        assert!(res.is_err());
+        let err = res.unwrap_err();
+        assert!(err.message.contains("Expected insert, delete, update, or create command"));
+    }
+
+    #[test]
+    fn test_exception_missing_table_after_create() {
+        let mut p = Parser::new("create database MyDB"); // 'database' is not a valid keyword after 'create'
+        let res = p.update_cmd();
+        assert!(res.is_err());
+        let err = res.unwrap_err();
+        assert!(err.message.contains("Expected table, view, or index after 'create'"));
+    }
+
+    #[test]
+    fn test_exception_lexer_expected_delimiter() {
+        let mut p = Parser::new("select a from T where a 1"); // missing '='
+        let res = p.query();
+        assert!(res.is_err());
+        let err = res.unwrap_err();
+        // The error comes from Lexer::eat_delim
+        assert!(err.message.contains("Expected delimiter '='"));
+    }
+
+    #[test]
+    fn test_exception_lexer_expected_identifier() {
+        let mut p = Parser::new("select 123 from T"); // select expects identifier (field)
+        let res = p.query();
+        assert!(res.is_err());
+        let err = res.unwrap_err();
+        assert!(err.message.contains("Expected identifier"));
+    }
+
+    #[test]
+    fn test_exception_unrecognized_field_type() {
+        let mut p = Parser::new("create table T (a boolean)"); // boolean is not supported
+        let res = p.update_cmd();
+        assert!(res.is_err());
+        let err = res.unwrap_err();
+        assert!(err.message.contains("Expected 'int' or 'varchar' field type"));
     }
 }

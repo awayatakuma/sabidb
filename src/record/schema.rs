@@ -38,7 +38,7 @@ impl Schema {
     }
 
     pub fn add_field(
-        &mut self,
+        &self,
         fldname: &String,
         field_type: i32,
         length: i32,
@@ -54,32 +54,29 @@ impl Schema {
         Ok(())
     }
 
-    pub fn add_int_field(&mut self, fldname: &String) -> Result<(), String> {
+    pub fn add_int_field(&self, fldname: &String) -> Result<(), String> {
         self.add_field(fldname, field_type::INTEGER, 0)
     }
 
-    pub fn add_string_field(&mut self, fldname: &String, length: i32) -> Result<(), String> {
+    pub fn add_string_field(&self, fldname: &String, length: i32) -> Result<(), String> {
         self.add_field(fldname, field_type::VARCHAR, length)
     }
 
-    pub fn add(&mut self, fldname: &String, sch: Arc<Mutex<Schema>>) -> Result<(), String> {
-        let sch = sch.lock().map_err(|_| "failed to get lock")?;
+    pub fn add(&self, fldname: &String, sch: &Schema) -> Result<(), String> {
         let field_type = sch.field_type(fldname)?;
         let length = sch.length(fldname)?;
         self.add_field(fldname, field_type, length)
     }
 
-    pub fn add_all(&mut self, sch: Arc<Mutex<Schema>>) -> Result<(), String> {
+    pub fn add_all(&self, sch: &Schema) -> Result<(), String> {
         let fldnames = {
-            sch.lock()
-                .map_err(|_| "failed to get lock")?
-                .fields
+            sch.fields
                 .lock()
                 .map_err(|_| "failed to get lock")?
                 .clone()
         };
         for fldname in fldnames.iter() {
-            self.add(fldname, sch.clone())?;
+            self.add(fldname, sch)?;
         }
 
         Ok(())
@@ -104,7 +101,7 @@ impl Schema {
             .lock()
             .map_err(|_| "failed to get lock")?
             .get(fldname)
-            .unwrap()
+            .ok_or_else(|| format!("field {} not found", fldname))?
             .field_type;
         Ok(ret)
     }
@@ -115,7 +112,7 @@ impl Schema {
             .lock()
             .map_err(|_| "failed to get lock")?
             .get(fldname)
-            .unwrap()
+            .ok_or_else(|| format!("field {} not found", fldname))?
             .length;
         Ok(ret)
     }

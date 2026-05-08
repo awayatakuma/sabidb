@@ -53,14 +53,12 @@ impl Plan for ProjectPlan {
 
 impl ProjectPlan {
     pub fn new(p: Arc<Mutex<dyn Plan>>, fieldlist: Vec<String>) -> Result<ProjectPlan, String> {
-        let mut schema = Schema::new();
+        let schema = Schema::new();
         for fld in fieldlist {
             schema
                 .add(
                     &fld,
-                    Arc::new(Mutex::new(
-                        p.lock().map_err(|_| "failed to get lock")?.schema()?,
-                    )),
+                    &p.lock().map_err(|_| "failed to get lock")?.schema()?,
                 )
                 .unwrap();
         }

@@ -35,9 +35,9 @@ impl Planner {
 
         self.qplanner
             .lock()
-            .map_err(|_| BadSyntaxException {})?
+            .map_err(|_| BadSyntaxException::new("Lock failed"))?
             .create_plan(data, tx)
-            .map_err(|_| BadSyntaxException {})
+            .map_err(|e| BadSyntaxException::new(&e))
     }
 
     pub fn execute_update(
@@ -51,39 +51,39 @@ impl Planner {
             crate::parse::parser::UpdateCommand::Insert(insert_data) => self
                 .uplanner
                 .lock()
-                .map_err(|_| BadSyntaxException {})?
+                .map_err(|_| BadSyntaxException::new("Lock failed"))?
                 .execute_insert(insert_data, tx)
-                .map_err(|_| BadSyntaxException),
+                .map_err(|_| BadSyntaxException::new("Insert failed")),
             crate::parse::parser::UpdateCommand::Delete(delete_data) => self
                 .uplanner
                 .lock()
-                .map_err(|_| BadSyntaxException {})?
+                .map_err(|_| BadSyntaxException::new("Lock failed"))?
                 .execute_delete(delete_data, tx)
-                .map_err(|_| BadSyntaxException),
+                .map_err(|_| BadSyntaxException::new("Delete failed")),
             crate::parse::parser::UpdateCommand::Modify(modify_data) => self
                 .uplanner
                 .lock()
-                .map_err(|_| BadSyntaxException {})?
+                .map_err(|_| BadSyntaxException::new("Lock failed"))?
                 .execute_modify(modify_data, tx)
-                .map_err(|_| BadSyntaxException),
+                .map_err(|_| BadSyntaxException::new("Modify failed")),
             crate::parse::parser::UpdateCommand::CreateTable(create_table_data) => self
                 .uplanner
                 .lock()
-                .map_err(|_| BadSyntaxException {})?
+                .map_err(|_| BadSyntaxException::new("Lock failed"))?
                 .execute_create_table(create_table_data, tx)
-                .map_err(|_| BadSyntaxException),
+                .map_err(|_| BadSyntaxException::new("CreateTable failed")),
             crate::parse::parser::UpdateCommand::CreateView(create_view_data) => self
                 .uplanner
                 .lock()
-                .map_err(|_| BadSyntaxException {})?
+                .map_err(|_| BadSyntaxException::new("Lock failed"))?
                 .execute_create_view(create_view_data, tx)
-                .map_err(|_| BadSyntaxException),
+                .map_err(|_| BadSyntaxException::new("CreateView failed")),
             crate::parse::parser::UpdateCommand::CreateIndex(create_index_data) => self
                 .uplanner
                 .lock()
-                .map_err(|_| BadSyntaxException {})?
+                .map_err(|_| BadSyntaxException::new("Lock failed"))?
                 .execute_create_index(create_index_data, tx)
-                .map_err(|_| BadSyntaxException),
+                .map_err(|_| BadSyntaxException::new("CreateIndex failed")),
         }
     }
 

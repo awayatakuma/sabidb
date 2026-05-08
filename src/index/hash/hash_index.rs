@@ -13,7 +13,7 @@ const NUM_BUCKETS: u64 = 100;
 pub struct HashIndex {
     tx: Arc<Mutex<Transaction>>,
     idxname: String,
-    layout: Arc<Mutex<Layout>>,
+    layout: Layout,
     search_key: Option<Constant>,
     ts: Option<TableScan>,
 }
@@ -84,7 +84,7 @@ impl Index for HashIndex {
 }
 
 impl HashIndex {
-    pub fn new(tx: Arc<Mutex<Transaction>>, idxname: String, layout: Arc<Mutex<Layout>>) -> Self {
+    pub fn new(tx: Arc<Mutex<Transaction>>, idxname: String, layout: Layout) -> Self {
         HashIndex {
             tx: tx,
             idxname: idxname,

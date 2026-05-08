@@ -14,12 +14,14 @@ pub struct IndexSelectScan {
 }
 
 impl IndexSelectScan {
-    pub(crate) fn new(ts: TableScan, idx: Arc<Mutex<dyn Index>>, val: Constant) -> Self {
-        IndexSelectScan {
-            ts: ts,
-            idx: idx,
-            val: val,
-        }
+    pub(crate) fn new(
+        ts: TableScan,
+        idx: Arc<Mutex<dyn Index>>,
+        val: Constant,
+    ) -> Result<Self, String> {
+        let mut iss = IndexSelectScan { ts, idx, val };
+        iss.before_first()?;
+        Ok(iss)
     }
 }
 
@@ -66,7 +68,7 @@ impl Scan for IndexSelectScan {
         Ok(())
     }
 
-    fn to_update_scan(&mut self) -> Result<Arc<Mutex<(dyn UpdateScan + 'static)>>, String> {
+    fn to_update_scan(&mut self) -> Result<Arc<Mutex<dyn UpdateScan + 'static >>, String> {
         Err("Unexpected downcast".to_string())
     }
 

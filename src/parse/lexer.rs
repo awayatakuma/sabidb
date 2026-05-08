@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt;
 use std::iter::Peekable;
 use std::str::Chars;
 
@@ -18,8 +19,26 @@ pub enum Token {
     Id(String),
 }
 
-#[derive(Debug, PartialEq)]
-pub struct BadSyntaxException;
+#[derive(Debug, PartialEq, Clone)]
+pub struct BadSyntaxException {
+    pub message: String,
+}
+
+impl BadSyntaxException {
+    pub fn new(message: &str) -> Self {
+        Self {
+            message: message.to_string(),
+        }
+    }
+}
+
+impl fmt::Display for BadSyntaxException {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Syntax error: {}", self.message)
+    }
+}
+
+impl std::error::Error for BadSyntaxException {}
 
 impl<'a> Lexer<'a> {
     pub fn new(input: &'a str) -> Self {
@@ -69,7 +88,9 @@ impl<'a> Lexer<'a> {
 
     pub fn eat_delim(&mut self, d: char) -> Result<(), BadSyntaxException> {
         if !self.match_delim(d) {
-            return Err(BadSyntaxException);
+            return Err(BadSyntaxException {
+                message: format!("Expected delimiter '{}', found {:?}", d, self.current_token),
+            });
         }
         self.next_token();
         Ok(())
@@ -80,7 +101,9 @@ impl<'a> Lexer<'a> {
             self.next_token();
             Ok(i)
         } else {
-            Err(BadSyntaxException)
+            Err(BadSyntaxException {
+                message: format!("Expected integer constant, found {:?}", self.current_token),
+            })
         }
     }
 
@@ -89,13 +112,17 @@ impl<'a> Lexer<'a> {
             self.next_token();
             Ok(s)
         } else {
-            Err(BadSyntaxException)
+            Err(BadSyntaxException {
+                message: format!("Expected string constant, found {:?}", self.current_token),
+            })
         }
     }
 
     pub fn eat_keyword(&mut self, w: &str) -> Result<(), BadSyntaxException> {
         if !self.match_keyword(w) {
-            return Err(BadSyntaxException);
+            return Err(BadSyntaxException {
+                message: format!("Expected keyword '{}', found {:?}", w, self.current_token),
+            });
         }
         self.next_token();
         Ok(())
@@ -103,10 +130,17 @@ impl<'a> Lexer<'a> {
 
     pub fn eat_id(&mut self) -> Result<String, BadSyntaxException> {
         if let Some(Token::Id(id)) = self.current_token.take() {
+            if self.keywords.contains(id.as_str()) {
+                return Err(BadSyntaxException {
+                    message: format!("Expected identifier, found keyword '{}'", id),
+                });
+            }
             self.next_token();
             Ok(id)
         } else {
-            Err(BadSyntaxException)
+            Err(BadSyntaxException {
+                message: format!("Expected identifier, found {:?}", self.current_token),
+            })
         }
     }
 

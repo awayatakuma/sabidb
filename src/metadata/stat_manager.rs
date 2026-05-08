@@ -13,29 +13,29 @@ use super::{stat_info::StatInfo, table_manager::TableManager};
 
 #[derive(Debug, Clone)]
 pub struct StatManager {
-    table_manager: Arc<Mutex<TableManager>>,
+    table_manager: Arc<TableManager>,
     table_stats: Arc<Mutex<HashMap<String, StatInfo>>>,
     num_calls: Arc<Mutex<i32>>,
 }
 
 impl StatManager {
     pub fn new(
-        table_manager: Arc<Mutex<TableManager>>,
+        table_manager: Arc<TableManager>,
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<Self, String> {
-        let mut ret = StatManager {
+        let ret = StatManager {
             table_manager: table_manager,
             table_stats: Arc::new(Mutex::new(HashMap::new())),
             num_calls: Arc::new(Mutex::new(0)),
         };
-        ret.refreash_statistics(tx.clone())?;
+        ret.refreash_statistics_internal(tx.clone())?;
         Ok(ret)
     }
 
     pub fn get_stat_info(
-        &mut self,
+        &self,
         tblname: String,
-        layout: Arc<Mutex<Layout>>,
+        layout: Layout,
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<StatInfo, String> {
         let num_calls = {
@@ -44,7 +44,7 @@ impl StatManager {
             *num_calls
         };
         if num_calls > 100 {
-            self.refreash_statistics(tx.clone())?;
+            self.refreash_statistics_internal(tx.clone())?;
         }
         let mut table_stats = self.table_stats.lock().map_err(|_| "failed to get lock")?;
         if let Some(si) = table_stats.get(&tblname) {
@@ -56,21 +56,13 @@ impl StatManager {
         }
     }
 
-    fn refreash_statistics(&mut self, tx: Arc<Mutex<Transaction>>) -> Result<(), String> {
-        let table_manager = self
-            .table_manager
-            .lock()
-            .map_err(|_| "failed to get lock")?;
-        let tcatlayout = Arc::new(Mutex::new(
-            table_manager.get_layout("tblcat".to_string(), tx.clone())?,
-        ));
+    fn refreash_statistics_internal(&self, tx: Arc<Mutex<Transaction>>) -> Result<(), String> {
+        let tcatlayout = self.table_manager.get_layout("tblcat".to_string(), tx.clone())?;
         let mut tcat = TableScan::new(tx.clone(), "tblcat".to_string(), tcatlayout)?;
         let mut table_stats = self.table_stats.lock().map_err(|_| "failed to get lock")?;
         while tcat.next()? {
             let tblname = tcat.get_string(&"tblname".to_string())?;
-            let layout = Arc::new(Mutex::new(
-                table_manager.get_layout(tblname.clone(), tx.clone())?,
-            ));
+            let layout = self.table_manager.get_layout(tblname.clone(), tx.clone())?;
             let si = Self::calc_table_stats(tblname.clone(), layout, tx.clone())?;
             table_stats.insert(tblname.clone(), si);
         }
@@ -80,7 +72,7 @@ impl StatManager {
     }
     fn calc_table_stats(
         tblname: String,
-        layout: Arc<Mutex<Layout>>,
+        layout: Layout,
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<StatInfo, String> {
         let mut num_recs = 0;

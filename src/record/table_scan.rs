@@ -12,7 +12,7 @@ use super::{layout::Layout, record_page::RecordPage, rid::RID, schema::field_typ
 #[derive(Debug, Clone)]
 pub struct TableScan {
     tx: Arc<Mutex<Transaction>>,
-    layout: Arc<Mutex<Layout>>,
+    layout: Layout,
     rp: Arc<Mutex<RecordPage>>,
     filename: String,
     current_slot: i32,
@@ -22,7 +22,7 @@ impl TableScan {
     pub fn new(
         tx: Arc<Mutex<Transaction>>,
         tblname: String,
-        layout: Arc<Mutex<Layout>>,
+        layout: Layout,
     ) -> Result<Self, String> {
         let filename = tblname + ".tbl";
         let blk = if tx
@@ -152,11 +152,7 @@ impl Scan for TableScan {
     fn get_val(&self, fldname: &String) -> Result<Constant, String> {
         let ret = if self
             .layout
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .schema()
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .field_type(fldname)?
             == INTEGER
         {
@@ -170,11 +166,7 @@ impl Scan for TableScan {
     fn has_field(&self, fldname: &String) -> Result<bool, String> {
         let ret = self
             .layout
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .schema()
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .has_field(fldname)?;
         Ok(ret)
     }
@@ -187,7 +179,7 @@ impl Scan for TableScan {
         Ok(())
     }
 
-    fn to_update_scan(&mut self) -> Result<Arc<Mutex<(dyn UpdateScan + 'static)>>, String> {
+    fn to_update_scan(&mut self) -> Result<Arc<Mutex<dyn UpdateScan + 'static >>, String> {
         Ok(Arc::new(Mutex::new(self.clone())))
     }
 
@@ -208,11 +200,7 @@ impl UpdateScan for TableScan {
     ) -> Result<(), String> {
         if self
             .layout
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .schema()
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .field_type(&fldname)?
             == INTEGER
         {
@@ -307,7 +295,7 @@ impl UpdateScan for TableScan {
 #[cfg(test)]
 mod tests {
 
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
     use tempfile::TempDir;
 
@@ -327,20 +315,18 @@ mod tests {
         let db = Arc::new(SimpleDB::new_with_sizes(temp_dir.path(), 400, 8));
         let tx = db.new_tx();
 
-        let mut sch = Schema::new();
+        let sch = Schema::new();
         sch.add_int_field(&"A".to_string()).unwrap();
         sch.add_string_field(&"B".to_string(), 9).unwrap();
-        let layout = Arc::new(Mutex::new(
-            Layout::new_from_schema(Arc::new(Mutex::new(sch))).unwrap(),
-        ));
+        let layout = Layout::new_from_schema(sch).unwrap();
 
         {
-            let binding = layout.lock().unwrap().schema().lock().unwrap().fields();
+            let binding = layout.schema().fields();
             let binding = binding.lock().unwrap();
             let fldnames = binding.iter();
 
             for fldname in fldnames {
-                let offset = layout.lock().unwrap().offset(fldname).unwrap();
+                let offset = layout.offset(fldname).unwrap();
                 if fldname == "A" {
                     assert_eq!(offset, 4)
                 } else if fldname == "B" {

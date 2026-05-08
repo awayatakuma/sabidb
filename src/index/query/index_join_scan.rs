@@ -20,13 +20,15 @@ impl IndexJoinScan {
         idx: Arc<Mutex<dyn Index>>,
         joinfield: String,
         rhs: Arc<Mutex<TableScan>>,
-    ) -> Self {
-        IndexJoinScan {
+    ) -> Result<Self, String> {
+        let mut ijs = IndexJoinScan {
             lhs: lhs,
             idx: idx,
             joinfield: joinfield,
             rhs: rhs,
-        }
+        };
+        ijs.before_first()?;
+        Ok(ijs)
     }
 
     fn reset_index(&mut self) -> Result<(), String> {
@@ -151,7 +153,7 @@ impl Scan for IndexJoinScan {
         Ok(())
     }
 
-    fn to_update_scan(&mut self) -> Result<Arc<Mutex<(dyn UpdateScan + 'static)>>, String> {
+    fn to_update_scan(&mut self) -> Result<Arc<Mutex<dyn UpdateScan + 'static >>, String> {
         Err("Unexpected downcast".to_string())
     }
 

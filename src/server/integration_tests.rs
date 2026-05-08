@@ -2,17 +2,13 @@
 mod tests {
     use tempfile::TempDir;
     use crate::server::simple_db::SimpleDB;
-    use crate::query::scan::Scan;
 
     fn run_update(planner: &mut crate::plan::planner::Planner, sql: &str, tx: std::sync::Arc<std::sync::Mutex<crate::tx::transaction::Transaction>>) {
         println!("SQL: {}", sql);
         planner.execute_update(sql, tx).expect(&format!("Failed to execute: {}", sql));
     }
 
-    #[test]
-    fn test_comprehensive_sql_operations() {
-        let temp_dir = TempDir::new().unwrap();
-        let db = SimpleDB::new(temp_dir.path());
+    fn run_comprehensive_test(db: SimpleDB) {
         let tx = db.new_tx();
         let mut planner = db.planner.unwrap();
 
@@ -137,5 +133,19 @@ mod tests {
 
         tx.lock().unwrap().commit().unwrap();
         println!("--- Comprehensive SQL Integration Test Passed ---\n");
+    }
+
+    #[test]
+    fn test_comprehensive_basic_planner() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = SimpleDB::new(temp_dir.path());
+        run_comprehensive_test(db);
+    }
+
+    #[test]
+    fn test_comprehensive_heuristic_planner() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = SimpleDB::new_with_refined_planners(temp_dir.path());
+        run_comprehensive_test(db);
     }
 }

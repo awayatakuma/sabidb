@@ -22,9 +22,9 @@ impl EmbeddedConnection {
     pub fn commit(&mut self) -> Result<(), crate::rdbc::sql_exception::SQLException> {
         self.current_tx
             .lock()
-            .map_err(|_| SQLException {})?
+            .map_err(|e| SQLException::new(e.to_string()))?
             .commit()
-            .map_err(|_| SQLException {})?;
+            .map_err(|e| SQLException::new(e.to_string()))?;
         self.current_tx = self.db.new_tx();
         Ok(())
     }
@@ -36,9 +36,9 @@ impl EmbeddedConnection {
     pub(crate) fn _rollback(&mut self) -> Result<(), crate::rdbc::sql_exception::SQLException> {
         self.current_tx
             .lock()
-            .map_err(|_| SQLException {})?
+            .map_err(|e| SQLException::new(e.to_string()))?
             .rollback()
-            .map_err(|_| SQLException {})?;
+            .map_err(|e| SQLException::new(e.to_string()))?;
         self.current_tx = self.db.new_tx();
 
         Ok(())
@@ -50,7 +50,7 @@ impl<'a> ConnectionAdapter<'a> for EmbeddedConnection {
 
     fn create_statement(
         &'a mut self,
-    ) -> Result<EmbeddedStatement, crate::rdbc::sql_exception::SQLException> {
+    ) -> Result<EmbeddedStatement<'a>, crate::rdbc::sql_exception::SQLException> {
         Ok(EmbeddedStatement::new(self))
     }
 

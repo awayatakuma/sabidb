@@ -11,7 +11,7 @@ use super::{btree_page::BTPage, dir_entry::DirEntry};
 
 pub struct BTreeLeaf {
     tx: Arc<Mutex<Transaction>>,
-    layout: Arc<Mutex<Layout>>,
+    layout: Layout,
     search_key: Constant,
     contents: BTPage,
     currentslot: i32,
@@ -22,7 +22,7 @@ impl BTreeLeaf {
     pub fn new(
         tx: Arc<Mutex<Transaction>>,
         blk: BlockId,
-        layout: Arc<Mutex<Layout>>,
+        layout: Layout,
         search_key: Constant,
     ) -> Result<Self, String> {
         let filename = blk.file_name();

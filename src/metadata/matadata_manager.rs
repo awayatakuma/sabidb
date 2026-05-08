@@ -15,20 +15,20 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct MetadataManager {
-    tbl_manager: Arc<Mutex<TableManager>>,
-    view_manager: Arc<Mutex<ViewManager>>,
+    tbl_manager: Arc<TableManager>,
+    view_manager: Arc<ViewManager>,
     stat_manager: Arc<Mutex<StatManager>>,
     idx_manager: Arc<Mutex<IndexManager>>,
 }
 
 impl MetadataManager {
     pub fn new(is_new: bool, tx: Arc<Mutex<Transaction>>) -> Result<Self, String> {
-        let tbl_manager = Arc::new(Mutex::new(TableManager::new(is_new, tx.clone())?));
-        let view_manager = Arc::new(Mutex::new(ViewManager::new(
+        let tbl_manager = Arc::new(TableManager::new(is_new, tx.clone())?);
+        let view_manager = Arc::new(ViewManager::new(
             is_new,
             tbl_manager.clone(),
             tx.clone(),
-        )?));
+        )?);
         let stat_manager = Arc::new(Mutex::new(StatManager::new(
             tbl_manager.clone(),
             tx.clone(),
@@ -48,14 +48,12 @@ impl MetadataManager {
     }
 
     pub fn create_table(
-        &mut self,
+        &self,
         tblname: String,
-        sch: Arc<Mutex<Schema>>,
+        sch: Schema,
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<(), String> {
         self.tbl_manager
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .create_table(tblname, sch.clone(), tx.clone())?;
         Ok(())
     }
@@ -67,21 +65,17 @@ impl MetadataManager {
     ) -> Result<Layout, String> {
         let ret = self
             .tbl_manager
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .get_layout(tblname, tx)?;
         Ok(ret)
     }
 
     pub fn create_view(
-        &mut self,
+        &self,
         viewname: String,
         viewdef: String,
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<(), String> {
         self.view_manager
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .create_view(viewname, viewdef, tx.clone())?;
         Ok(())
     }
@@ -93,14 +87,12 @@ impl MetadataManager {
     ) -> Result<Option<String>, String> {
         let ret = self
             .view_manager
-            .lock()
-            .map_err(|_| "failed to get lock")?
             .get_view_def(viewname, tx)?;
         Ok(ret)
     }
 
     pub fn create_index(
-        &mut self,
+        &self,
         idxname: String,
         tblname: String,
         fldname: String,
@@ -129,7 +121,7 @@ impl MetadataManager {
     pub fn get_stat_info(
         &self,
         tblname: String,
-        layout: Arc<Mutex<Layout>>,
+        layout: Layout,
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<StatInfo, String> {
         let ret = self
@@ -143,7 +135,7 @@ impl MetadataManager {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
     use rand::Rng;
     use tempfile::TempDir;
@@ -166,13 +158,13 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let db = Arc::new(SimpleDB::new_with_sizes(temp_dir.path(), 400, 8));
         let tx = db.new_tx();
-        let mut mdm = MetadataManager::new(true, tx.clone()).unwrap();
+        let mdm = MetadataManager::new(true, tx.clone()).unwrap();
 
-        let mut sch = Schema::new();
+        let sch = Schema::new();
         sch.add_int_field(&"A".to_string()).unwrap();
         sch.add_string_field(&"B".to_string(), 9).unwrap();
 
-        let sch = Arc::new(Mutex::new(sch));
+        let sch = sch;
         mdm.create_table("MyTable".to_string(), sch, tx.clone())
             .unwrap();
         let layout = mdm.get_layout("MyTable".to_string(), tx.clone()).unwrap();
@@ -180,15 +172,13 @@ mod tests {
         // Part 1: Table Metadata
         {
             let size = layout.slot_size();
-            let binding = layout.schema();
-            let sch2 = binding.lock().unwrap();
+            let sch2 = layout.schema();
             println!("MyTable has slot size {}", size);
             assert!(size == 21);
             println!("Its fields are:");
             let binding = sch2.fields();
-            let binding = binding.lock().unwrap();
-            let fldnames = binding.iter();
-            for fldname in fldnames {
+            let fldnames = binding.lock().unwrap();
+            for fldname in fldnames.iter() {
                 if fldname.eq("A") {
                     println!("A : int");
                     assert_eq!(sch2.field_type(fldname), Ok(INTEGER));
@@ -205,7 +195,6 @@ mod tests {
 
         // Part 2: Statistics Metadata
         {
-            let layout = Arc::new(Mutex::new(layout));
             let mut ts = TableScan::new(tx.clone(), "MyTable".to_string(), layout.clone()).unwrap();
             let mut rng = rand::rng();
 
@@ -218,18 +207,6 @@ mod tests {
             let si = mdm
                 .get_stat_info("MyTable".to_string(), layout, tx.clone())
                 .unwrap();
-            let bl = si.blocks_accessed();
-            println!("B(MyTable) = {}", bl);
-            assert_eq!(bl, 3);
-            let ro = si.records_output();
-            println!("R(MyTable) = {}", ro);
-            assert_eq!(ro, 50);
-            let dva = si.distinct_values("A".to_string());
-            println!("V(MyTable,A) = {}", dva);
-            assert_eq!(dva, 17);
-            let dvb = si.distinct_values("B".to_string());
-            println!("V(MyTable,B) = {}", dvb);
-            assert_eq!(dvb, 17);
             let bl = si.blocks_accessed();
             println!("B(MyTable) = {}", bl);
             assert_eq!(bl, 3);
