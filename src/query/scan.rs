@@ -43,7 +43,7 @@ mod tests {
 
         let tx = db.new_tx();
 
-        let mut sch1 = Schema::new();
+        let sch1 = Schema::new();
         sch1.add_int_field(&"A".to_string()).unwrap();
         sch1.add_string_field(&"B".to_string(), 9).unwrap();
         let layout1 = Layout::new_from_schema(sch1).unwrap();
@@ -98,7 +98,7 @@ mod tests {
 
         let tx = db.new_tx();
 
-        let mut sch1 = Schema::new();
+        let sch1 = Schema::new();
         sch1.add_int_field(&"A".to_string()).unwrap();
         sch1.add_string_field(&"B".to_string(), 9).unwrap();
         let layout1 = Layout::new_from_schema(sch1).unwrap();
@@ -115,7 +115,7 @@ mod tests {
         }
         us1.close().unwrap();
 
-        let mut sch2 = Schema::new();
+        let sch2 = Schema::new();
         sch2.add_int_field(&"C".to_string()).unwrap();
         sch2.add_string_field(&"D".to_string(), 9).unwrap();
         let layout2 = Layout::new_from_schema(sch2).unwrap();

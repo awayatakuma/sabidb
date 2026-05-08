@@ -191,7 +191,7 @@ impl RecordPage {
 #[cfg(test)]
 mod tests {
 
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
     use tempfile::TempDir;
 
@@ -207,7 +207,7 @@ mod tests {
         let db = Arc::new(SimpleDB::new_with_sizes(temp_dir.path(), 400, 8));
         let tx = db.new_tx();
 
-        let mut sch = Schema::new();
+        let sch = Schema::new();
         sch.add_int_field(&"A".to_string()).unwrap();
         sch.add_string_field(&"B".to_string(), 9).unwrap();
         let layout = Layout::new_from_schema(sch).unwrap();

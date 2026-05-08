@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::{
     constants::INTEGER_BYTES,
@@ -114,7 +114,7 @@ mod tests {
         println!("{}", msg);
         let mut iter = lm.lock().unwrap().iterator().unwrap();
         while let Some(rec_res) = iter.next() {
-            let rec = rec_res.unwrap();
+            let rec: Vec<u8> = rec_res.unwrap();
             let p = Page::new_from_bytes(rec);
             let s = p.get_string(0).unwrap();
             let npos = Page::max_length(s.len());

@@ -135,7 +135,7 @@ impl MetadataManager {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
     use rand::Rng;
     use tempfile::TempDir;
@@ -160,7 +160,7 @@ mod tests {
         let tx = db.new_tx();
         let mdm = MetadataManager::new(true, tx.clone()).unwrap();
 
-        let mut sch = Schema::new();
+        let sch = Schema::new();
         sch.add_int_field(&"A".to_string()).unwrap();
         sch.add_string_field(&"B".to_string(), 9).unwrap();
 
