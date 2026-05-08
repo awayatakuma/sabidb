@@ -28,17 +28,16 @@ impl QueryPlanner for BasicQueryPlanner {
                 .get_view_def(tbl.clone(), tx.clone())?;
             if let Some(vd) = viewdef {
                 let mut parser = Parser::new(vd.as_str());
-                let viewdata = parser.query().map_err(|_| "failed to create plan")?;
+                let viewdata = parser.query().map_err(|e| format!("failed to create plan for view {}: {}", tbl, e))?;
                 let plan = self.create_plan(viewdata, tx.clone())?;
                 plans.push(plan);
             } else {
                 plans.push(Arc::new(Mutex::new(TablePlan::new(
                     tx.clone(),
-                    tbl,
+                    tbl.clone(),
                     self.mdm.clone(),
-                )?)));
-            }
-        }
+                ).map_err(|e| format!("table or view {} not found: {}", tbl, e))?)));
+            }        }
         //Step 2: Create the product of all table plans
         let mut p = plans.remove(0);
         for nextplan in plans {

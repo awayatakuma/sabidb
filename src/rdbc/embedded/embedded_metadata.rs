@@ -23,10 +23,10 @@ impl ResultSetMetadataAdapter for EmbeddedMetadata {
         Ok(self
             .sch
             .lock()
-            .map_err(|_| SQLException {})?
+            .map_err(|e| SQLException::new(e.to_string()))?
             .fields()
             .lock()
-            .map_err(|_| SQLException {})?
+            .map_err(|e| SQLException::new(e.to_string()))?
             .len() as i32)
     }
 
@@ -37,10 +37,10 @@ impl ResultSetMetadataAdapter for EmbeddedMetadata {
         Ok(self
             .sch
             .lock()
-            .map_err(|_| SQLException {})?
+            .map_err(|e| SQLException::new(e.to_string()))?
             .fields()
             .lock()
-            .map_err(|_| SQLException {})?
+            .map_err(|e| SQLException::new(e.to_string()))?
             .get(column as usize)
             .cloned())
     }
@@ -53,9 +53,9 @@ impl ResultSetMetadataAdapter for EmbeddedMetadata {
             return Ok(Some(
                 self.sch
                     .lock()
-                    .map_err(|_| SQLException {})?
+                    .map_err(|e| SQLException::new(e.to_string()))?
                     .field_type(&fldname)
-                    .map_err(|_| SQLException {})?,
+                    .map_err(|e| SQLException::new(e.to_string()))?,
             ));
         }
 
@@ -70,17 +70,17 @@ impl ResultSetMetadataAdapter for EmbeddedMetadata {
             let fldtype = self
                 .sch
                 .lock()
-                .map_err(|_| SQLException {})?
+                .map_err(|e| SQLException::new(e.to_string()))?
                 .field_type(&fldname)
-                .map_err(|_| SQLException {})?;
+                .map_err(|e| SQLException::new(e.to_string()))?;
             let fldlen = if fldtype == INTEGER {
                 6
             } else {
                 self.sch
                     .lock()
-                    .map_err(|_| SQLException {})?
+                    .map_err(|e| SQLException::new(e.to_string()))?
                     .length(&fldname)
-                    .map_err(|_| SQLException {})?
+                    .map_err(|e| SQLException::new(e.to_string()))?
             };
             return Ok(i32::max(fldname.len() as i32, fldlen) + 1);
         }
