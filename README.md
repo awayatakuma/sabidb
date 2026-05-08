@@ -55,6 +55,13 @@ Or connect to a specific database:
 cargo run --bin embedded -- -d studentdb
 ```
 
+### 🛠️ Maintenance: Rebuilding Samples
+If the schema changes or you want to reset the built-in sample database (`studentdb`), run:
+```bash
+cargo run --bin build-samples
+```
+This tool regenerates all tables, indexes, and sample data (including the `students` table with its new `boolean` fields).
+
 #### Sample Queries
 Once in the `sabidb>` shell, you can try:
 ```sql
@@ -68,7 +75,7 @@ These scenarios are automatically verified by `cargo test` against both **Basic*
 ### 1. Data Definition (DDL)
 ```sql
 -- Create tables, indexes, and views
-create table students(sid int, sname varchar(9), majorid int, gradyear int)
+create table students(sid int, sname varchar(9), majorid int, gradyear int, is_active boolean)
 create table depts(did int, dname varchar(8))
 create index majorid_idx on students(majorid)
 create view cs_students as select sid, sname from students where majorid = 10
@@ -77,20 +84,19 @@ create view cs_students as select sid, sname from students where majorid = 10
 ### 2. Data Manipulation (DML)
 ```sql
 -- Insert, Update, and Delete
-insert into students(sid, sname, majorid, gradyear) values (1, 'joe', 10, 2021)
-update students set gradyear = 2023 where sid = 1
+insert into students(sid, sname, majorid, gradyear, is_active) values (1, 'joe', 10, 2021, true)
+update students set is_active = false where sid = 1
 delete from students where sid = 5
 ```
 
 ### 3. Querying
 ```sql
 -- Basic selection
-select sid, sname, majorid, gradyear from students
+select sid, sname, is_active from students
 
 -- Joins, View expansion, and Multiple conditions
-select sname, dname from students, depts where majorid = did
+select sname, dname from students, depts where majorid = did and is_active = true
 select sid, sname from cs_students
-select sname, dname from students, depts where majorid = did and gradyear = 2021
 ```
 
 ---
@@ -109,6 +115,7 @@ This roadmap is based on the [SamehadaDB](https://github.com/ryogrid/SamehadaDB)
 - [x] Update Tuple
 - [ ] LIMIT / OFFSET
 - [x] Varchar
+- [x] Boolean
 - [ ] AS clause
 - [ ] Nested Query
 - [x] Predicates: IN

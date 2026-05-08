@@ -83,6 +83,12 @@ impl Scan for GroupByScan {
             .ok_or("invalid type".to_string())
     }
 
+    fn get_bool(&self, fldname: &String) -> Result<bool, String> {
+        self.get_val(fldname)?
+            .as_bool()
+            .ok_or("invalid type".to_string())
+    }
+
     fn get_val(&self, fldname: &String) -> Result<crate::query::constant::Constant, String> {
         if self.groupfields.contains(fldname) {
             return Ok(self.groupval.as_ref().unwrap().get_val(fldname).unwrap());

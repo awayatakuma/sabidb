@@ -50,11 +50,11 @@ pub fn exec(conn: &mut EmbeddedConnection, qry: &String) {
 
 fn exec_query<'a>(stmt: &'a mut EmbeddedStatement<'a>, sql: &String) {
     match stmt.execute_query(sql) {
-        Ok(result) => {
-            let cnt = print_result_set(result).unwrap();
-            println!("Rows: {}", cnt)
-        }
-        Err(_) => println!("invalid query {}", sql),
+        Ok(result) => match print_result_set(result) {
+            Ok(cnt) => println!("Rows: {}", cnt),
+            Err(e) => println!("Error printing results: {}", e),
+        },
+        Err(e) => println!("Invalid query: {}. Error: {}", sql, e),
     }
 }
 
@@ -62,25 +62,21 @@ fn print_result_set(mut result: EmbeddedResultSet) -> Result<i32, SQLException> 
     let meta = result.get_metadata()?;
 
     for i in 0..meta.get_column_count()? {
-        let name = meta.get_column_name(i).expect("get column name").unwrap();
-        let w = meta
-            .get_column_display_size(i)
-            .expect("get column display size");
+        let name = meta.get_column_name(i)?.ok_or_else(|| SQLException::new("column name is none".to_string()))?;
+        let w = meta.get_column_display_size(i)?;
         print!("{:width$} ", name, width = w as usize);
     }
     println!();
 
     for i in 0..meta.get_column_count()? {
-        let w = meta
-            .get_column_display_size(i)
-            .expect("get column display size");
+        let w = meta.get_column_display_size(i)?;
         print!("{:-<width$}", "", width = w as usize + 1);
     }
     println!();
 
     result.before_first()?;
     let mut c = 0;
-    while result.next().unwrap() {
+    while result.next()? {
         c += 1;
         print_record(&mut result, &meta)?;
     }
@@ -94,12 +90,10 @@ fn print_record(
     results: &mut EmbeddedResultSet,
     meta: &EmbeddedMetadata,
 ) -> Result<(), SQLException> {
-    for i in 0..meta.get_column_count().unwrap() {
-        let fldname = meta.get_column_name(i).expect("get column name").unwrap();
-        let w = meta
-            .get_column_display_size(i)
-            .expect("get column display size");
-        match meta.get_column_type(i).expect("get column type") {
+    for i in 0..meta.get_column_count()? {
+        let fldname = meta.get_column_name(i)?.ok_or_else(|| SQLException::new("field name is none".to_string()))?;
+        let w = meta.get_column_display_size(i)?;
+        match meta.get_column_type(i)? {
             Some(type_i) => {
                 if type_i == field_type::INTEGER {
                     print!("{:width$} ", results.get_int(fldname)?, width = w as usize);
@@ -109,11 +103,17 @@ fn print_record(
                         results.get_string(fldname)?,
                         width = w as usize
                     );
+                } else if type_i == field_type::BOOLEAN {
+                    print!(
+                        "{:width$} ",
+                        results.get_bool(fldname)?,
+                        width = w as usize
+                    );
                 } else {
-                    panic!("unexpected field type");
+                    return Err(SQLException::new(format!("unexpected field type {}", type_i)));
                 }
             }
-            None => panic!("unreachable"),
+            None => return Err(SQLException::new("field type is none".to_string())),
         }
     }
     println!();

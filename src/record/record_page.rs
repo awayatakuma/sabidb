@@ -58,6 +58,11 @@ impl RecordPage {
         Ok(ret)
     }
 
+    pub fn get_bool(&self, slot: i32, fldname: String) -> Result<bool, String> {
+        let val = self.get_int(slot, fldname)?;
+        Ok(val != 0)
+    }
+
     pub fn set_int(&mut self, slot: i32, fldname: String, val: i32) -> Result<(), String> {
         let fldpos = self.offset(slot)?
             + self
@@ -84,6 +89,10 @@ impl RecordPage {
             .set_string(&self.blk, fldpos, val, true)?;
 
         Ok(())
+    }
+
+    pub fn set_bool(&mut self, slot: i32, fldname: String, val: bool) -> Result<(), String> {
+        self.set_int(slot, fldname, if val { 1 } else { 0 })
     }
 
     pub fn delete(&mut self, slot: i32) -> Result<(), String> {
@@ -273,6 +282,32 @@ mod tests {
             println!("slot + {} : [ {} , {} ]", slot, a, b);
             slot = rp.next_after(slot).unwrap();
         }
+        tx.lock().unwrap().unpin(&blk).unwrap();
+        tx.lock().unwrap().commit().unwrap();
+    }
+
+    #[test]
+    fn test_record_page_boolean() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = Arc::new(SimpleDB::new_with_sizes(temp_dir.path(), 400, 8));
+        let tx = db.new_tx();
+
+        let sch = Schema::new();
+        sch.add_boolean_field(&"is_valid".to_string()).unwrap();
+        let layout = Layout::new_from_schema(sch).unwrap();
+
+        let blk = tx.lock().unwrap().append("test_bool".to_string()).unwrap();
+        tx.lock().unwrap().pin(&blk.clone()).unwrap();
+        let mut rp = RecordPage::new(tx.clone(), blk.clone(), layout).unwrap();
+        rp.format().unwrap();
+
+        let slot = rp.insert_after(-1).unwrap();
+        rp.set_bool(slot, "is_valid".to_string(), true).unwrap();
+        assert_eq!(rp.get_bool(slot, "is_valid".to_string()).unwrap(), true);
+
+        rp.set_bool(slot, "is_valid".to_string(), false).unwrap();
+        assert_eq!(rp.get_bool(slot, "is_valid".to_string()).unwrap(), false);
+
         tx.lock().unwrap().unpin(&blk).unwrap();
         tx.lock().unwrap().commit().unwrap();
     }

@@ -19,6 +19,10 @@ impl<'a> PredParser<'a> {
             self.lex.eat_string_constant()?;
         } else if self.lex.match_int_constant() {
             self.lex.eat_int_constant()?;
+        } else if self.lex.match_keyword("true") {
+            self.lex.eat_keyword("true")?;
+        } else if self.lex.match_keyword("false") {
+            self.lex.eat_keyword("false")?;
         } else {
             return Err(super::lexer::BadSyntaxException::new("Expected constant"));
         }

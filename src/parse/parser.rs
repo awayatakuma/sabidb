@@ -39,6 +39,12 @@ impl<'a> Parser<'a> {
             return Ok(Constant::new_from_string(self.lex.eat_string_constant()?));
         } else if self.lex.match_int_constant() {
             return Ok(Constant::new_from_i32(self.lex.eat_int_constant()?));
+        } else if self.lex.match_keyword("true") {
+            self.lex.eat_keyword("true")?;
+            return Ok(Constant::new_from_bool(true));
+        } else if self.lex.match_keyword("false") {
+            self.lex.eat_keyword("false")?;
+            return Ok(Constant::new_from_bool(false));
         } else {
             return Err(BadSyntaxException::new("Expected constant"));
         }
@@ -259,9 +265,16 @@ impl<'a> Parser<'a> {
                 .map_err(|e| super::lexer::BadSyntaxException {
                     message: format!("Failed to add varchar field: {}", e),
                 })?;
+        } else if self.lex.match_keyword("boolean") {
+            self.lex.eat_keyword("boolean")?;
+            schema
+                .add_boolean_field(&fldname)
+                .map_err(|e| super::lexer::BadSyntaxException {
+                    message: format!("Failed to add boolean field: {}", e),
+                })?;
         } else {
             return Err(BadSyntaxException {
-                message: "Expected 'int' or 'varchar' field type".to_string(),
+                message: "Expected 'int', 'varchar', or 'boolean' field type".to_string(),
             });
         }
 
@@ -407,6 +420,14 @@ mod tests {
     }
 
     #[test]
+    fn test_pred_parser_select_boolean() {
+        let s = "select col_a from tab_a where col_b = true";
+        let mut p = Parser::new(s);
+        let qd = p.query().unwrap();
+        assert_eq!("col_b = true", qd.pred().to_string());
+    }
+
+    #[test]
     fn test_exception_invalid_keyword() {
         let mut p = Parser::new("invalid_cmd from T");
         let res = p.update_cmd();
@@ -445,10 +466,10 @@ mod tests {
 
     #[test]
     fn test_exception_unrecognized_field_type() {
-        let mut p = Parser::new("create table T (a boolean)"); // boolean is not supported
+        let mut p = Parser::new("create table T (a float)"); // float is not supported
         let res = p.update_cmd();
         assert!(res.is_err());
         let err = res.unwrap_err();
-        assert!(err.message.contains("Expected 'int' or 'varchar' field type"));
+        assert!(err.message.contains("Expected 'int', 'varchar', or 'boolean' field type"));
     }
 }

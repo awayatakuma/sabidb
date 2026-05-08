@@ -130,6 +130,15 @@ impl Scan for MultibufferProductScan {
             .get_string(fldname)
     }
 
+    fn get_bool(&self, fldname: &String) -> Result<bool, String> {
+        self.prodscan
+            .as_ref()
+            .unwrap()
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .get_bool(fldname)
+    }
+
     fn get_val(&self, fldname: &String) -> Result<crate::query::constant::Constant, String> {
         self.prodscan
             .as_ref()

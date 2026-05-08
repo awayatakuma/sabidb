@@ -15,18 +15,18 @@ mod tests {
         println!("\n--- Starting Comprehensive SQL Integration Test ---");
 
         // 1. Create tables
-        run_update(&mut planner, "create table students(sid int, sname varchar(9), majorid int, gradyear int)", tx.clone());
+        run_update(&mut planner, "create table students(sid int, sname varchar(9), majorid int, gradyear int, is_active boolean)", tx.clone());
         run_update(&mut planner, "create table depts(did int, dname varchar(8))", tx.clone());
 
         // 2. Create index
         run_update(&mut planner, "create index majorid_idx on students(majorid)", tx.clone());
 
         // 3. Insert data into students
-        run_update(&mut planner, "insert into students(sid, sname, majorid, gradyear) values (1, 'joe', 10, 2021)", tx.clone());
-        run_update(&mut planner, "insert into students(sid, sname, majorid, gradyear) values (2, 'amy', 20, 2020)", tx.clone());
-        run_update(&mut planner, "insert into students(sid, sname, majorid, gradyear) values (3, 'max', 10, 2022)", tx.clone());
-        run_update(&mut planner, "insert into students(sid, sname, majorid, gradyear) values (4, 'sue', 20, 2022)", tx.clone());
-        run_update(&mut planner, "insert into students(sid, sname, majorid, gradyear) values (5, 'bob', 30, 2020)", tx.clone());
+        run_update(&mut planner, "insert into students(sid, sname, majorid, gradyear, is_active) values (1, 'joe', 10, 2021, true)", tx.clone());
+        run_update(&mut planner, "insert into students(sid, sname, majorid, gradyear, is_active) values (2, 'amy', 20, 2020, true)", tx.clone());
+        run_update(&mut planner, "insert into students(sid, sname, majorid, gradyear, is_active) values (3, 'max', 10, 2022, false)", tx.clone());
+        run_update(&mut planner, "insert into students(sid, sname, majorid, gradyear, is_active) values (4, 'sue', 20, 2022, true)", tx.clone());
+        run_update(&mut planner, "insert into students(sid, sname, majorid, gradyear, is_active) values (5, 'bob', 30, 2020, false)", tx.clone());
 
         // 4. Insert data into depts
         run_update(&mut planner, "insert into depts(did, dname) values (10, 'compsci')", tx.clone());
@@ -146,6 +146,19 @@ mod tests {
             count += 1;
         }
         assert_eq!(count, 2);
+
+        // 13. Select with boolean condition
+        let qry = "select sid, sname from students where is_active = true".to_string();
+        println!("SQL: {}", qry);
+        let plan = planner.create_query_planner(&qry, tx.clone()).unwrap();
+        let scan = plan.lock().unwrap().open().unwrap();
+        let mut count = 0;
+        while scan.lock().unwrap().next().unwrap() {
+            let sid = scan.lock().unwrap().get_int(&"sid".to_string()).unwrap();
+            assert!(sid == 1 || sid == 2 || sid == 4);
+            count += 1;
+        }
+        assert_eq!(count, 3);
 
         tx.lock().unwrap().commit().unwrap();
         println!("--- Comprehensive SQL Integration Test Passed ---\n");

@@ -64,6 +64,7 @@ impl Layout {
         let field_type = schema.field_type(fldname)?;
         match field_type {
             field_type::INTEGER => Ok(INTEGER_BYTES as usize),
+            field_type::BOOLEAN => Ok(INTEGER_BYTES as usize),
             field_type::VARCHAR => Ok(Page::max_length(schema.length(fldname)? as usize)),
             _ => panic!("unreachable!!"),
         }

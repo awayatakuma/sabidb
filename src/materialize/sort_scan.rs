@@ -187,6 +187,23 @@ impl Scan for SortScan {
         }
     }
 
+    fn get_bool(&self, fldname: &String) -> Result<bool, String> {
+        match self.currentscan.as_ref().unwrap() {
+            CurrentScan::S1 => self
+                .s1
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_bool(fldname),
+            CurrentScan::S2 => self
+                .s2
+                .as_ref()
+                .unwrap()
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_bool(fldname),
+        }
+    }
+
     fn get_val(&self, fldname: &String) -> Result<crate::query::constant::Constant, String> {
         match self.currentscan.as_ref().unwrap() {
             CurrentScan::S1 => self
