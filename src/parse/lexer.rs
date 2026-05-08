@@ -44,7 +44,7 @@ impl<'a> Lexer<'a> {
     pub fn new(input: &'a str) -> Self {
         let mut lexer = Lexer {
             keywords: HashSet::from([
-                "select", "from", "where", "and", "insert", "into", "values", "delete", "update",
+                "select", "from", "where", "and", "in", "insert", "into", "values", "delete", "update",
                 "set", "create", "table", "int", "varchar", "view", "as", "index", "on",
             ]),
             input: input.chars().peekable(),

@@ -131,6 +131,22 @@ mod tests {
         }
         assert_eq!(count, 4);
 
+        // 12. Select with IN clause and verify values
+        let qry = "select sid, sname from students where sid in (1, 3)".to_string();
+        println!("SQL: {}", qry);
+        let plan = planner.create_query_planner(&qry, tx.clone()).unwrap();
+        let scan = plan.lock().unwrap().open().unwrap();
+        let mut count = 0;
+        while scan.lock().unwrap().next().unwrap() {
+            let sid = scan.lock().unwrap().get_int(&"sid".to_string()).unwrap();
+            let sname = scan.lock().unwrap().get_string(&"sname".to_string()).unwrap();
+            assert!(sid == 1 || sid == 3);
+            if sid == 1 { assert_eq!(sname, "joe"); }
+            if sid == 3 { assert_eq!(sname, "max"); }
+            count += 1;
+        }
+        assert_eq!(count, 2);
+
         tx.lock().unwrap().commit().unwrap();
         println!("--- Comprehensive SQL Integration Test Passed ---\n");
     }

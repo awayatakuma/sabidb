@@ -111,7 +111,7 @@ This roadmap is based on the [SamehadaDB](https://github.com/ryogrid/SamehadaDB)
 - [x] Varchar
 - [ ] AS clause
 - [ ] Nested Query
-- [ ] Predicates: IN
+- [x] Predicates: IN
 - [ ] DISTINCT
 - [ ] UNION clause
 

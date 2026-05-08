@@ -54,10 +54,19 @@ impl<'a> Parser<'a> {
 
     pub fn term(&mut self) -> Result<Term, super::lexer::BadSyntaxException> {
         let lhs = self.expression()?;
-        self.lex.eat_delim('=')?;
-        let rhs = self.expression()?;
+        if self.lex.match_delim('=') {
+            self.lex.eat_delim('=')?;
+            let rhs = self.expression()?;
+            return Ok(Term::new(lhs, rhs));
+        } else if self.lex.match_keyword("in") {
+            self.lex.eat_keyword("in")?;
+            self.lex.eat_delim('(')?;
+            let rhs_list = self.const_list()?;
+            self.lex.eat_delim(')')?;
+            return Ok(Term::new_in(lhs, rhs_list));
+        }
 
-        Ok(Term::new(lhs, rhs))
+        Err(super::lexer::BadSyntaxException::new("Expected '=' or 'in'"))
     }
 
     pub fn predicate(&mut self) -> Result<Predicate, super::lexer::BadSyntaxException> {
@@ -390,6 +399,14 @@ mod tests {
     }
 
     #[test]
+    fn test_pred_parser_select_in() {
+        let s = "select col_a from tab_a where col_b in (1, 2, 3)";
+        let mut p = Parser::new(s);
+        let qd = p.query().unwrap();
+        assert_eq!("col_b in (1, 2, 3)", qd.pred().to_string());
+    }
+
+    #[test]
     fn test_exception_invalid_keyword() {
         let mut p = Parser::new("invalid_cmd from T");
         let res = p.update_cmd();
@@ -413,8 +430,8 @@ mod tests {
         let res = p.query();
         assert!(res.is_err());
         let err = res.unwrap_err();
-        // The error comes from Lexer::eat_delim
-        assert!(err.message.contains("Expected delimiter '='"));
+        // The error comes from Parser::term
+        assert!(err.message.contains("Expected '=' or 'in'"));
     }
 
     #[test]
