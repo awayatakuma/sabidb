@@ -13,4 +13,6 @@ Thumbs.db
 # Database data files
 sabidb/*
 !sabidb/studentdb/
-\n# Local-only files\n/.local/
+
+# Local-only files
+/.local/
