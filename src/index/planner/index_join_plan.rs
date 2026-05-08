@@ -20,7 +20,7 @@ impl IndexJoinPlan {
         ii: IndexInfo,
         joinfield: String,
     ) -> Result<Self, String> {
-        let mut sch = Schema::new();
+        let sch = Schema::new();
         sch.add_all(&p1.lock().map_err(|_| "failed to get lock")?.schema()?)?;
         sch.add_all(&p2.lock().map_err(|_| "failed to get lock")?.schema()?)?;
         Ok(IndexJoinPlan {
@@ -46,7 +46,7 @@ impl Plan for IndexJoinPlan {
             idx,
             self.joinfield.clone(),
             Arc::new(Mutex::new(ts.clone())),
-        ))))
+        )?)))
     }
 
     fn blocks_accessed(&self) -> Result<i32, String> {

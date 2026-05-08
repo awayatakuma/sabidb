@@ -20,13 +20,15 @@ impl IndexJoinScan {
         idx: Arc<Mutex<dyn Index>>,
         joinfield: String,
         rhs: Arc<Mutex<TableScan>>,
-    ) -> Self {
-        IndexJoinScan {
+    ) -> Result<Self, String> {
+        let mut ijs = IndexJoinScan {
             lhs: lhs,
             idx: idx,
             joinfield: joinfield,
             rhs: rhs,
-        }
+        };
+        ijs.before_first()?;
+        Ok(ijs)
     }
 
     fn reset_index(&mut self) -> Result<(), String> {

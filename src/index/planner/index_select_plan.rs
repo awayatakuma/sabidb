@@ -35,7 +35,7 @@ impl Plan for IndexSelectPlan {
             ts.clone(),
             idx,
             self.val.clone(),
-        ))))
+        )?)))
     }
     fn blocks_accessed(&self) -> Result<i32, String> {
         Ok(self.ii.blocks_accessed()? + self.records_output()?)
