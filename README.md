@@ -97,7 +97,7 @@ select sname, dname from students, depts where majorid = did and gradyear = 2021
 
 ## 🗺️ Roadmap
 
-Based on the [SamehadaDB](https://github.com/ryogrid/SamehadaDB) roadmap.
+This roadmap is based on the [SamehadaDB](https://github.com/ryogrid/SamehadaDB) roadmap. Special thanks to [ryogrid](https://github.com/ryogrid) for the inspiration! 🙏
 
 ### SQL Features
 - [x] Predicates on Seq Scan
