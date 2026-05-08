@@ -19,11 +19,11 @@ pub struct TableManager {
 
 impl TableManager {
     pub fn new(is_new: bool, tx: Arc<Mutex<Transaction>>) -> Result<Self, String> {
-        let mut tcat_schema = Schema::new();
+        let tcat_schema = Schema::new();
         tcat_schema.add_string_field(&"tblname".to_string(), MAX_NAME)?;
         tcat_schema.add_int_field(&"slotsize".to_string())?;
 
-        let mut fcat_schema = Schema::new();
+        let fcat_schema = Schema::new();
         fcat_schema.add_string_field(&"tblname".to_string(), MAX_NAME)?;
         fcat_schema.add_string_field(&"fldname".to_string(), MAX_NAME)?;
         fcat_schema.add_int_field(&"type".to_string())?;
@@ -96,7 +96,7 @@ impl TableManager {
         }
         tcat.close()?;
 
-        let mut sch = Schema::new();
+        let sch = Schema::new();
         let mut offsets = HashMap::<String, usize>::new();
         let mut fcat = TableScan::new(tx.clone(), "fldcat".to_string(), self.fcat_layout.clone())?;
         while fcat.next()? {
@@ -122,7 +122,7 @@ impl TableManager {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
     use tempfile::TempDir;
 
@@ -143,7 +143,7 @@ mod tests {
         let tx = db.new_tx();
         let tm = TableManager::new(true, tx.clone()).unwrap();
 
-        let mut sch = Schema::new();
+        let sch = Schema::new();
         sch.add_int_field(&"A".to_string()).unwrap();
         sch.add_string_field(&"B".to_string(), 9).unwrap();
         

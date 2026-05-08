@@ -121,6 +121,7 @@ impl ConcurrencyManager {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn has_x_lock(&self, blk: &BlockId) -> Result<bool, String> {
         let locks = self.locks.lock().map_err(|_| "failed to get lock")?;
         Ok(self.has_x_lock_internal(&locks, blk))

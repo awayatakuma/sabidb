@@ -15,6 +15,7 @@ use super::{
     temp_table::TempTable,
 };
 
+#[allow(dead_code)]
 pub struct SortPlan {
     tx: Arc<Mutex<Transaction>>,
     p: Arc<Mutex<dyn Plan>>,
@@ -22,6 +23,7 @@ pub struct SortPlan {
     comp: RecordComparator,
 }
 
+#[allow(dead_code)]
 impl SortPlan {
     pub fn new(
         tx: Arc<Mutex<Transaction>>,

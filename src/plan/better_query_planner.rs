@@ -8,6 +8,7 @@ use super::{
 };
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct BetterQueryPlanner {
     mdm: MetadataManager,
 }

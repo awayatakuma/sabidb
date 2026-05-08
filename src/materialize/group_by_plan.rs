@@ -11,6 +11,8 @@ pub struct GroupByPlan {
     sch: Schema,
 }
 
+#[allow(dead_code)]
+#[allow(dead_code)]
 impl GroupByPlan {
     pub fn new(
         tx: Arc<Mutex<Transaction>>,
@@ -19,7 +21,7 @@ impl GroupByPlan {
         aggfns: Vec<Arc<Mutex<dyn AggregationFn>>>,
     ) -> Result<Self, String> {
         let sortplan = SortPlan::new(tx, p, groupfields.clone())?;
-        let mut sch = Schema::new();
+        let sch = Schema::new();
         for fldname in groupfields.iter() {
             sch.add(fldname, &sortplan.schema()?)?;
         }

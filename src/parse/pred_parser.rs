@@ -20,7 +20,7 @@ impl<'a> PredParser<'a> {
         } else if self.lex.match_int_constant() {
             self.lex.eat_int_constant()?;
         } else {
-            return Err(super::lexer::BadSyntaxException);
+            return Err(super::lexer::BadSyntaxException::new("Expected constant"));
         }
         Ok(())
     }
@@ -70,6 +70,9 @@ mod tests {
     fn test_pred_parser2() {
         let s = "a";
         let mut p = PredParser::new(s);
-        assert_eq!(Err(BadSyntaxException), p.predicate());
+        assert_eq!(
+            Err(BadSyntaxException::new("Expected delimiter '=', found None")),
+            p.predicate()
+        );
     }
 }

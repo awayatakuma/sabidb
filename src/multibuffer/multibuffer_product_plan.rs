@@ -23,7 +23,7 @@ impl MultibufferProductPlan {
         rhs: Arc<Mutex<dyn Plan>>,
     ) -> Result<Self, String> {
         let lhs = Arc::new(Mutex::new(MaterializePlan::new(lhs.clone(), tx.clone())));
-        let mut sch = Schema::new();
+        let sch = Schema::new();
         sch.add_all(&lhs.lock().map_err(|_| "failed to get lock")?.schema()?)?;
         sch.add_all(&rhs.lock().map_err(|_| "failed to get lock")?.schema()?)?;
 

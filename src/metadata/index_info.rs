@@ -90,7 +90,7 @@ impl IndexInfo {
     }
 
     fn create_idx_layout(&self) -> Result<Layout, String> {
-        let mut sch = Schema::new();
+        let sch = Schema::new();
         sch.add_int_field(&"block".to_string())?;
         sch.add_int_field(&"id".to_string())?;
         let tbl_sch = &self.tbl_schema;

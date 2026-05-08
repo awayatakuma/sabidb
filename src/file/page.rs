@@ -79,6 +79,7 @@ impl Page {
         return self.bb.clone();
     }
 
+    #[allow(dead_code)]
     pub(super) fn set_contents(&mut self, b: Vec<u8>) {
         self.bb = Arc::new(Mutex::new(b));
     }

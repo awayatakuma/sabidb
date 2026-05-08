@@ -9,6 +9,8 @@ pub struct GroupValue {
     vals: HashMap<String, Constant>,
 }
 
+#[allow(dead_code)]
+#[allow(dead_code)]
 impl GroupValue {
     pub fn new(s: Arc<Mutex<dyn Scan>>, fields: Vec<String>) -> Result<Self, String> {
         let mut vals = HashMap::new();

@@ -22,7 +22,7 @@ impl ViewManager {
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<Self, String> {
         if is_new {
-            let mut sch = Schema::new();
+            let sch = Schema::new();
             sch.add_string_field(&"viewname".to_string(), MAX_NAME)?;
             sch.add_string_field(&"viewdef".to_string(), MAX_VIEWDEF)?;
             let sch = sch;

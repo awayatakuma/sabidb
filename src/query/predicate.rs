@@ -77,7 +77,7 @@ impl Predicate {
         sch2: &Schema,
     ) -> Result<Option<Predicate>, String> {
         let mut result = Predicate::new();
-        let mut newsch = Schema::new();
+        let newsch = Schema::new();
         newsch.add_all(sch1)?;
         newsch.add_all(sch2)?;
         let newsch = newsch;

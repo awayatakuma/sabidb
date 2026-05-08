@@ -4,6 +4,8 @@ use crate::{plan::plan::Plan, record::schema::Schema, tx::transaction::Transacti
 
 use super::{merge_join_scan::MergeJoinScan, sort_plan::SortPlan};
 
+#[allow(dead_code)]
+#[allow(dead_code)]
 pub struct MergeJoinPlan {
     p1: Arc<Mutex<dyn Plan>>,
     p2: Arc<Mutex<dyn Plan>>,
@@ -26,7 +28,7 @@ impl MergeJoinPlan {
         let sortlist2 = vec![fldname2.clone()];
         let p2 = SortPlan::new(tx, p2, sortlist2)?;
 
-        let mut sch = Schema::new();
+        let sch = Schema::new();
         sch.add_all(&p1.schema()?)?;
         sch.add_all(&p2.schema()?)?;
 

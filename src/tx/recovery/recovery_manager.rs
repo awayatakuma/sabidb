@@ -104,7 +104,7 @@ impl RecoveryManager {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
     use tempfile::TempDir;
 
     use crate::{
