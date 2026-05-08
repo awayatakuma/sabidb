@@ -160,6 +160,27 @@ impl Scan for MergeJoinScan {
         }
     }
 
+    fn get_bool(&self, fldname: &String) -> Result<bool, String> {
+        if self
+            .s1
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .has_field(fldname)?
+        {
+            return self
+                .s1
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_bool(fldname);
+        } else {
+            return self
+                .s2
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_bool(fldname);
+        }
+    }
+
     fn get_val(&self, fldname: &String) -> Result<Constant, String> {
         if self
             .s1

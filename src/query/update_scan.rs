@@ -8,6 +8,7 @@ pub trait UpdateScan: Scan {
     fn set_val(&mut self, fldname: String, val: Constant) -> Result<(), String>;
     fn set_int(&mut self, fldname: String, val: i32) -> Result<(), String>;
     fn set_string(&mut self, fldname: String, val: String) -> Result<(), String>;
+    fn set_bool(&mut self, fldname: String, val: bool) -> Result<(), String>;
     fn insert(&mut self) -> Result<(), String>;
     fn delete(&mut self) -> Result<(), String>;
     fn get_rid(&mut self) -> Result<RID, String>;

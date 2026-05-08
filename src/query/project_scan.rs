@@ -52,6 +52,17 @@ impl Scan for ProjectScan {
         Err(format!("field {} not found", fldname))
     }
 
+    fn get_bool(&self, fldname: &String) -> Result<bool, String> {
+        if self.has_field(fldname)? {
+            return self
+                .s
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_bool(fldname);
+        }
+        Err(format!("field {} not found", fldname))
+    }
+
     fn get_val(&self, fldname: &String) -> Result<super::constant::Constant, String> {
         if self.has_field(fldname)? {
             return self

@@ -39,6 +39,12 @@ impl<'a> Parser<'a> {
             return Ok(Constant::new_from_string(self.lex.eat_string_constant()?));
         } else if self.lex.match_int_constant() {
             return Ok(Constant::new_from_i32(self.lex.eat_int_constant()?));
+        } else if self.lex.match_keyword("true") {
+            self.lex.eat_keyword("true")?;
+            return Ok(Constant::new_from_bool(true));
+        } else if self.lex.match_keyword("false") {
+            self.lex.eat_keyword("false")?;
+            return Ok(Constant::new_from_bool(false));
         } else {
             return Err(BadSyntaxException::new("Expected constant"));
         }
@@ -54,10 +60,19 @@ impl<'a> Parser<'a> {
 
     pub fn term(&mut self) -> Result<Term, super::lexer::BadSyntaxException> {
         let lhs = self.expression()?;
-        self.lex.eat_delim('=')?;
-        let rhs = self.expression()?;
+        if self.lex.match_delim('=') {
+            self.lex.eat_delim('=')?;
+            let rhs = self.expression()?;
+            return Ok(Term::new(lhs, rhs));
+        } else if self.lex.match_keyword("in") {
+            self.lex.eat_keyword("in")?;
+            self.lex.eat_delim('(')?;
+            let rhs_list = self.const_list()?;
+            self.lex.eat_delim(')')?;
+            return Ok(Term::new_in(lhs, rhs_list));
+        }
 
-        Ok(Term::new(lhs, rhs))
+        Err(super::lexer::BadSyntaxException::new("Expected '=' or 'in'"))
     }
 
     pub fn predicate(&mut self) -> Result<Predicate, super::lexer::BadSyntaxException> {
@@ -250,9 +265,16 @@ impl<'a> Parser<'a> {
                 .map_err(|e| super::lexer::BadSyntaxException {
                     message: format!("Failed to add varchar field: {}", e),
                 })?;
+        } else if self.lex.match_keyword("boolean") {
+            self.lex.eat_keyword("boolean")?;
+            schema
+                .add_boolean_field(&fldname)
+                .map_err(|e| super::lexer::BadSyntaxException {
+                    message: format!("Failed to add boolean field: {}", e),
+                })?;
         } else {
             return Err(BadSyntaxException {
-                message: "Expected 'int' or 'varchar' field type".to_string(),
+                message: "Expected 'int', 'varchar', or 'boolean' field type".to_string(),
             });
         }
 
@@ -390,6 +412,22 @@ mod tests {
     }
 
     #[test]
+    fn test_pred_parser_select_in() {
+        let s = "select col_a from tab_a where col_b in (1, 2, 3)";
+        let mut p = Parser::new(s);
+        let qd = p.query().unwrap();
+        assert_eq!("col_b in (1, 2, 3)", qd.pred().to_string());
+    }
+
+    #[test]
+    fn test_pred_parser_select_boolean() {
+        let s = "select col_a from tab_a where col_b = true";
+        let mut p = Parser::new(s);
+        let qd = p.query().unwrap();
+        assert_eq!("col_b = true", qd.pred().to_string());
+    }
+
+    #[test]
     fn test_exception_invalid_keyword() {
         let mut p = Parser::new("invalid_cmd from T");
         let res = p.update_cmd();
@@ -413,8 +451,8 @@ mod tests {
         let res = p.query();
         assert!(res.is_err());
         let err = res.unwrap_err();
-        // The error comes from Lexer::eat_delim
-        assert!(err.message.contains("Expected delimiter '='"));
+        // The error comes from Parser::term
+        assert!(err.message.contains("Expected '=' or 'in'"));
     }
 
     #[test]
@@ -428,10 +466,10 @@ mod tests {
 
     #[test]
     fn test_exception_unrecognized_field_type() {
-        let mut p = Parser::new("create table T (a boolean)"); // boolean is not supported
+        let mut p = Parser::new("create table T (a float)"); // float is not supported
         let res = p.update_cmd();
         assert!(res.is_err());
         let err = res.unwrap_err();
-        assert!(err.message.contains("Expected 'int' or 'varchar' field type"));
+        assert!(err.message.contains("Expected 'int', 'varchar', or 'boolean' field type"));
     }
 }

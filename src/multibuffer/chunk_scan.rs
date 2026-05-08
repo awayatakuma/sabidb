@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::{
     file::block_id::BlockId,
     query::{constant::Constant, scan::Scan},
-    record::{layout::Layout, record_page::RecordPage, schema::field_type::INTEGER},
+    record::{layout::Layout, record_page::RecordPage, schema::field_type},
     tx::transaction::Transaction,
 };
 
@@ -89,16 +89,20 @@ impl Scan for ChunkScan {
             .get_string(self.currentslot, fldname.clone())
     }
 
+    fn get_bool(&self, fldname: &String) -> Result<bool, String> {
+        self.rp
+            .as_ref()
+            .unwrap()
+            .get_bool(self.currentslot, fldname.clone())
+    }
+
     fn get_val(&self, fldname: &String) -> Result<crate::query::constant::Constant, String> {
-        if self
-            .layout
-            .schema()
-            .field_type(fldname)?
-            == INTEGER
-        {
-            return Ok(Constant::new_from_i32(self.get_int(fldname)?));
-        } else {
-            return Ok(Constant::new_from_string(self.get_string(fldname)?));
+        let fldtype = self.layout.schema().field_type(fldname)?;
+        match fldtype {
+            field_type::INTEGER => Ok(Constant::new_from_i32(self.get_int(fldname)?)),
+            field_type::BOOLEAN => Ok(Constant::new_from_bool(self.get_bool(fldname)?)),
+            field_type::VARCHAR => Ok(Constant::new_from_string(self.get_string(fldname)?)),
+            _ => panic!("unknown field type {} for field {}", fldtype, fldname),
         }
     }
 

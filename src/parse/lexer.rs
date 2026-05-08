@@ -44,8 +44,8 @@ impl<'a> Lexer<'a> {
     pub fn new(input: &'a str) -> Self {
         let mut lexer = Lexer {
             keywords: HashSet::from([
-                "select", "from", "where", "and", "insert", "into", "values", "delete", "update",
-                "set", "create", "table", "int", "varchar", "view", "as", "index", "on",
+                "select", "from", "where", "and", "in", "insert", "into", "values", "delete", "update",
+                "set", "create", "table", "int", "varchar", "boolean", "true", "false", "view", "as", "index", "on",
             ]),
             input: input.chars().peekable(),
             current_token: None,
@@ -252,5 +252,15 @@ mod tests {
         let x = lex.eat_id().unwrap();
         assert_eq!(222, y);
         assert_eq!("c_d", x);
+    }
+
+    #[test]
+    fn test_lexer_boolean() {
+        let s = "true false";
+        let mut lex = Lexer::new(s);
+        assert_eq!(lex.match_keyword("true"), true);
+        lex.eat_keyword("true").unwrap();
+        assert_eq!(lex.match_keyword("false"), true);
+        lex.eat_keyword("false").unwrap();
     }
 }

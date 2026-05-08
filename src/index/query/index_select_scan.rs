@@ -54,6 +54,10 @@ impl Scan for IndexSelectScan {
         self.ts.get_string(fldname)
     }
 
+    fn get_bool(&self, fldname: &String) -> Result<bool, String> {
+        self.ts.get_bool(fldname)
+    }
+
     fn get_val(&self, fldname: &String) -> Result<Constant, String> {
         self.ts.get_val(fldname)
     }

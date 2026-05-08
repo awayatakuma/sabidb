@@ -6,6 +6,7 @@ use std::{
 pub mod field_type {
     pub const INTEGER: i32 = 4;
     pub const VARCHAR: i32 = 12;
+    pub const BOOLEAN: i32 = -7;
 }
 
 #[derive(Debug, Clone)]
@@ -62,6 +63,10 @@ impl Schema {
         self.add_field(fldname, field_type::VARCHAR, length)
     }
 
+    pub fn add_boolean_field(&self, fldname: &String) -> Result<(), String> {
+        self.add_field(fldname, field_type::BOOLEAN, 0)
+    }
+
     pub fn add(&self, fldname: &String, sch: &Schema) -> Result<(), String> {
         let field_type = sch.field_type(fldname)?;
         let length = sch.length(fldname)?;
@@ -115,5 +120,18 @@ impl Schema {
             .ok_or_else(|| format!("field {} not found", fldname))?
             .length;
         Ok(ret)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_boolean_field() {
+        let sch = Schema::new();
+        let fldname = "is_active".to_string();
+        sch.add_boolean_field(&fldname).unwrap();
+        assert_eq!(sch.field_type(&fldname).unwrap(), field_type::BOOLEAN);
     }
 }

@@ -4,10 +4,11 @@ use crate::{
     file::block_id::BlockId,
     materialize::sort_scan::SortScan,
     query::{constant::Constant, scan::Scan, update_scan::UpdateScan},
+    record::schema::field_type,
     tx::transaction::Transaction,
 };
 
-use super::{layout::Layout, record_page::RecordPage, rid::RID, schema::field_type::INTEGER};
+use super::{layout::Layout, record_page::RecordPage, rid::RID};
 
 #[derive(Debug, Clone)]
 pub struct TableScan {
@@ -149,18 +150,23 @@ impl Scan for TableScan {
         Ok(ret)
     }
 
-    fn get_val(&self, fldname: &String) -> Result<Constant, String> {
-        let ret = if self
-            .layout
-            .schema()
-            .field_type(fldname)?
-            == INTEGER
-        {
-            Constant::new_from_i32(self.get_int(fldname)?)
-        } else {
-            Constant::new_from_string(self.get_string(fldname)?)
-        };
+    fn get_bool(&self, fldname: &String) -> Result<bool, String> {
+        let ret = self
+            .rp
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .get_bool(self.current_slot, fldname.clone())?;
         Ok(ret)
+    }
+
+    fn get_val(&self, fldname: &String) -> Result<Constant, String> {
+        let fldtype = self.layout.schema().field_type(fldname)?;
+        match fldtype {
+            field_type::INTEGER => Ok(Constant::new_from_i32(self.get_int(fldname)?)),
+            field_type::BOOLEAN => Ok(Constant::new_from_bool(self.get_bool(fldname)?)),
+            field_type::VARCHAR => Ok(Constant::new_from_string(self.get_string(fldname)?)),
+            _ => panic!("unknown field type {} for field {}", fldtype, fldname),
+        }
     }
 
     fn has_field(&self, fldname: &String) -> Result<bool, String> {
@@ -198,17 +204,13 @@ impl UpdateScan for TableScan {
         fldname: String,
         val: crate::query::constant::Constant,
     ) -> Result<(), String> {
-        if self
-            .layout
-            .schema()
-            .field_type(&fldname)?
-            == INTEGER
-        {
-            self.set_int(fldname, val.as_int().unwrap())?;
-        } else {
-            self.set_string(fldname, val.as_string().unwrap())?;
+        let fldtype = self.layout.schema().field_type(&fldname)?;
+        match fldtype {
+            field_type::INTEGER => self.set_int(fldname, val.as_int().ok_or("val is not int")?),
+            field_type::BOOLEAN => self.set_bool(fldname, val.as_bool().ok_or("val is not bool")?),
+            field_type::VARCHAR => self.set_string(fldname, val.as_string().ok_or("val is not string")?),
+            _ => panic!("unknown field type {} for field {}", fldtype, fldname),
         }
-        Ok(())
     }
 
     fn set_int(&mut self, fldname: String, val: i32) -> Result<(), String> {
@@ -223,6 +225,13 @@ impl UpdateScan for TableScan {
             .lock()
             .map_err(|_| "failed to get lock")?
             .set_string(self.current_slot, fldname, val)
+    }
+
+    fn set_bool(&mut self, fldname: String, val: bool) -> Result<(), String> {
+        self.rp
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .set_bool(self.current_slot, fldname, val)
     }
 
     fn insert(&mut self) -> Result<(), String> {

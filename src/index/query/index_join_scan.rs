@@ -114,6 +114,25 @@ impl Scan for IndexJoinScan {
         }
     }
 
+    fn get_bool(&self, fldname: &String) -> Result<bool, String> {
+        if self
+            .rhs
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .has_field(fldname)?
+        {
+            self.rhs
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_bool(fldname)
+        } else {
+            self.lhs
+                .lock()
+                .map_err(|_| "failed to get lock")?
+                .get_bool(fldname)
+        }
+    }
+
     fn get_val(&self, fldname: &String) -> Result<crate::query::constant::Constant, String> {
         if self
             .rhs

@@ -17,3 +17,7 @@ path = "src/mod.rs"
 [[bin]]
 name = "embedded"
 path = "app/embedded/main.rs"
+
+[[bin]]
+name = "build-samples"
+path = "app/build_samples.rs"

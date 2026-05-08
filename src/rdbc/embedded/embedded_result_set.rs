@@ -76,6 +76,15 @@ impl<'a> ResultSetAdapter for EmbeddedResultSet<'a> {
             .map_err(|e| SQLException::new(e.to_string()))
     }
 
+    fn get_bool(&self, fldname: String) -> Result<bool, SQLException> {
+        let fldname = fldname.to_lowercase();
+        self.s
+            .lock()
+            .map_err(|e| SQLException::new(e.to_string()))?
+            .get_bool(&fldname)
+            .map_err(|e| SQLException::new(e.to_string()))
+    }
+
     fn get_metadata(&self) -> Result<Self::ResultSetMetadata, SQLException> {
         Ok(EmbeddedMetadata::new(self.sch.clone()))
     }

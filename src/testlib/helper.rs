@@ -6,20 +6,20 @@ pub fn create_student_data(db: &mut SimpleDB) {
     let planner = db.planner.as_mut().unwrap();
 
     // add students
-    let mut cmd = "create table students(sid int, sname varchar(9),majorid int, gradyear int)";
+    let mut cmd = "create table students(sid int, sname varchar(9),majorid int, gradyear int, is_active boolean)";
     planner.execute_update(cmd, tx.clone()).unwrap();
 
-    cmd = "insert into students(sid, sname, majorid, gradyear) values";
+    cmd = "insert into students(sid, sname, majorid, gradyear, is_active) values";
     let students = [
-        "(1, 'joe', 10, 2021)",
-        "(2, 'amy', 20, 2020)",
-        "(3, 'max', 10, 2022)",
-        "(4, 'sue', 20, 2022)",
-        "(5, 'bob', 30, 2020)",
-        "(6, 'kim', 20, 2020)",
-        "(7, 'art', 30, 2021)",
-        "(8, 'pat', 20, 2019)",
-        "(9, 'lee', 10, 2021)",
+        "(1, 'joe', 10, 2021, true)",
+        "(2, 'amy', 20, 2020, true)",
+        "(3, 'max', 10, 2022, false)",
+        "(4, 'sue', 20, 2022, true)",
+        "(5, 'bob', 30, 2020, false)",
+        "(6, 'kim', 20, 2020, true)",
+        "(7, 'art', 30, 2021, true)",
+        "(8, 'pat', 20, 2019, false)",
+        "(9, 'lee', 10, 2021, true)",
     ];
 
     for student in students {

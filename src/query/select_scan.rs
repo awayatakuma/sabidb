@@ -48,6 +48,13 @@ impl Scan for SelectScan {
             .get_string(fldname)
     }
 
+    fn get_bool(&self, fldname: &String) -> Result<bool, String> {
+        self.s
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .get_bool(fldname)
+    }
+
     fn get_val(&self, fldname: &String) -> Result<super::constant::Constant, String> {
         self.s
             .lock()
@@ -108,6 +115,16 @@ impl UpdateScan for SelectScan {
             .lock()
             .map_err(|_| "failed to get lock")?
             .set_string(fldname, val)
+    }
+
+    fn set_bool(&mut self, fldname: String, val: bool) -> Result<(), String> {
+        self.s
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .to_update_scan()?
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .set_bool(fldname, val)
     }
 
     fn insert(&mut self) -> Result<(), String> {
