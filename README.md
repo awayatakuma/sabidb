@@ -141,7 +141,7 @@ This roadmap is based on the [SamehadaDB](https://github.com/ryogrid/SamehadaDB)
 - [ ] Logging And Recovery Of Index Data
 
 ### Join Algorithms
-- [x] INNER JOIN (Hash Join, Index Join, Nested Loop Join)
+- [x] INNER JOIN (Index Join, Nested Loop Join)
 - [ ] OUTER JOIN
 - [x] CROSS JOIN
 
