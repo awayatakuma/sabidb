@@ -52,15 +52,15 @@ mod tests {
 
         idx.before_first(&Constant::new_from_i32(20)).unwrap();
 
-        // Unreachable even if you implement ch12 because index insertion is not yet implemented
+        let mut names = Vec::new();
         while idx.next().unwrap() {
             let datarid = idx.get_data_rid().unwrap();
             studentscan.move_to_rid(datarid).unwrap();
-            println!(
-                "{}",
-                studentscan.get_string(&"majorid".to_string()).unwrap()
-            );
+            assert_eq!(studentscan.get_int(&"majorid".to_string()).unwrap(), 20);
+            names.push(studentscan.get_string(&"sname".to_string()).unwrap());
         }
+        names.sort();
+        assert_eq!(names, vec!["amy", "kim", "pat", "sue"]);
 
         idx.close().unwrap();
         studentscan.close().unwrap();

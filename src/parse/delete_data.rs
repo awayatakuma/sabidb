@@ -8,10 +8,7 @@ pub struct DeleteData {
 
 impl DeleteData {
     pub fn new(tblname: String, pred: Predicate) -> Self {
-        DeleteData {
-            tblname: tblname,
-            pred: pred,
-        }
+        DeleteData { tblname, pred }
     }
     pub fn table_name(&self) -> String {
         self.tblname.clone()

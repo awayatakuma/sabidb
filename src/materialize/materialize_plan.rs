@@ -17,10 +17,11 @@ impl MaterializePlan {
 
 impl Plan for MaterializePlan {
     fn open(&self) -> Result<Arc<Mutex<dyn crate::query::scan::Scan>>, String> {
-        let sch = self.srcplan
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .schema()?;
+        let sch = self
+            .srcplan
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .schema()?;
         let temp = TempTable::new(self.tx.clone(), sch.clone())?;
         let src = self
             .srcplan

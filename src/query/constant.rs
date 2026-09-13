@@ -91,13 +91,13 @@ impl Constant {
     }
 
     pub fn as_int(&self) -> Option<i32> {
-        self.ival.clone()
+        self.ival
     }
     pub fn as_string(&self) -> Option<String> {
         self.sval.clone()
     }
     pub fn as_bool(&self) -> Option<bool> {
-        self.bval.clone()
+        self.bval
     }
 
     pub fn hash_code(&self) -> u64 {

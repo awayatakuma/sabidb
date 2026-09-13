@@ -62,7 +62,9 @@ fn print_result_set(mut result: EmbeddedResultSet) -> Result<i32, SQLException> 
     let meta = result.get_metadata()?;
 
     for i in 0..meta.get_column_count()? {
-        let name = meta.get_column_name(i)?.ok_or_else(|| SQLException::new("column name is none".to_string()))?;
+        let name = meta
+            .get_column_name(i)?
+            .ok_or_else(|| SQLException::new("column name is none".to_string()))?;
         let w = meta.get_column_display_size(i)?;
         print!("{:width$} ", name, width = w as usize);
     }
@@ -91,7 +93,9 @@ fn print_record(
     meta: &EmbeddedMetadata,
 ) -> Result<(), SQLException> {
     for i in 0..meta.get_column_count()? {
-        let fldname = meta.get_column_name(i)?.ok_or_else(|| SQLException::new("field name is none".to_string()))?;
+        let fldname = meta
+            .get_column_name(i)?
+            .ok_or_else(|| SQLException::new("field name is none".to_string()))?;
         let w = meta.get_column_display_size(i)?;
         match meta.get_column_type(i)? {
             Some(type_i) => {
@@ -104,13 +108,12 @@ fn print_record(
                         width = w as usize
                     );
                 } else if type_i == field_type::BOOLEAN {
-                    print!(
-                        "{:width$} ",
-                        results.get_bool(fldname)?,
-                        width = w as usize
-                    );
+                    print!("{:width$} ", results.get_bool(fldname)?, width = w as usize);
                 } else {
-                    return Err(SQLException::new(format!("unexpected field type {}", type_i)));
+                    return Err(SQLException::new(format!(
+                        "unexpected field type {}",
+                        type_i
+                    )));
                 }
             }
             None => return Err(SQLException::new("field type is none".to_string())),

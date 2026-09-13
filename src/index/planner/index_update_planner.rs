@@ -13,7 +13,7 @@ pub struct IndexUpdatePlanner {
 
 impl IndexUpdatePlanner {
     pub fn new(mdm: Arc<Mutex<MetadataManager>>) -> Self {
-        IndexUpdatePlanner { mdm: mdm }
+        IndexUpdatePlanner { mdm }
     }
 }
 
@@ -164,11 +164,7 @@ impl UpdatePlanner for IndexUpdatePlanner {
         self.mdm
             .lock()
             .map_err(|_| "failed to get lock")?
-            .create_table(
-                data.table_name(),
-                data.new_schema(),
-                tx.clone(),
-            )?;
+            .create_table(data.table_name(), data.new_schema(), tx.clone())?;
         Ok(0)
     }
 

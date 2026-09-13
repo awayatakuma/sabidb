@@ -44,8 +44,9 @@ impl<'a> Lexer<'a> {
     pub fn new(input: &'a str) -> Self {
         let mut lexer = Lexer {
             keywords: HashSet::from([
-                "select", "from", "where", "and", "in", "insert", "into", "values", "delete", "update",
-                "set", "create", "table", "int", "varchar", "boolean", "true", "false", "view", "as", "index", "on",
+                "select", "from", "where", "and", "in", "insert", "into", "values", "delete",
+                "update", "set", "create", "table", "int", "varchar", "boolean", "true", "false",
+                "view", "as", "index", "on",
             ]),
             input: input.chars().peekable(),
             current_token: None,
@@ -179,7 +180,7 @@ impl<'a> Lexer<'a> {
     fn read_int_constant(&mut self) -> Option<Token> {
         let mut num = 0;
         while let Some(&c) = self.input.peek() {
-            if c.is_digit(10) {
+            if c.is_ascii_digit() {
                 num = num * 10 + (c as i32 - '0' as i32);
                 self.input.next();
             } else {
@@ -207,11 +208,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn read_delim(&mut self) -> Option<Token> {
-        if let Some(c) = self.input.next() {
-            Some(Token::Delim(c))
-        } else {
-            None
-        }
+        self.input.next().map(Token::Delim)
     }
 
     fn skip_whitespace(&mut self) {
@@ -258,9 +255,9 @@ mod tests {
     fn test_lexer_boolean() {
         let s = "true false";
         let mut lex = Lexer::new(s);
-        assert_eq!(lex.match_keyword("true"), true);
+        assert!(lex.match_keyword("true"));
         lex.eat_keyword("true").unwrap();
-        assert_eq!(lex.match_keyword("false"), true);
+        assert!(lex.match_keyword("false"));
         lex.eat_keyword("false").unwrap();
     }
 }

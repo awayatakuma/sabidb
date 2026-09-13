@@ -32,7 +32,7 @@ impl Iterator for LogIterator {
         match self.p.get_bytes(self.current_pos) {
             Ok(rec) => {
                 self.current_pos += INTEGER_BYTES as usize + rec.len();
-                return Some(Ok(rec));
+                Some(Ok(rec))
             }
             Err(_) => Some(Err("failed to get bytes".to_string())),
         }
@@ -47,16 +47,14 @@ impl LogIterator {
         Ok(Self {
             fm,
             blk,
-            p: p,
+            p,
             current_pos: boundary,
             boundary,
         })
     }
 
     fn move_to_block(&mut self, blk: BlockId) -> Result<(), String> {
-        let _ = self
-            .fm
-            .read(&blk, &mut self.p);
+        let _ = self.fm.read(&blk, &mut self.p);
         self.boundary = self.p.get_int(0).unwrap() as usize;
         self.current_pos = self.boundary;
         Ok(())

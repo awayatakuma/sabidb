@@ -26,9 +26,9 @@ impl fmt::Display for QueryData {
 impl QueryData {
     pub fn new(fields: Vec<String>, tables: Vec<String>, pred: Predicate) -> Self {
         QueryData {
-            fields: fields,
-            tables: tables,
-            pred: pred,
+            fields,
+            tables,
+            pred,
         }
     }
     pub fn tables(&self) -> Vec<String> {

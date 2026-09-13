@@ -29,7 +29,7 @@ pub struct SortScan {
 
 impl SortScan {
     pub fn new(runs: Vec<TempTable>, comp: RecordComparator) -> Result<Self, String> {
-        let s1 = runs.get(0).unwrap().open()?;
+        let s1 = runs.first().unwrap().open()?;
         let hasmore1 = s1.lock().map_err(|_| "failed to get lock")?.next()?;
         let mut s2 = None;
         let mut hasmore2 = false;
@@ -41,12 +41,12 @@ impl SortScan {
         }
 
         Ok(SortScan {
-            s1: s1,
-            s2: s2,
+            s1,
+            s2,
             currentscan: None,
-            comp: comp,
-            hasmore1: hasmore1,
-            hasmore2: hasmore2,
+            comp,
+            hasmore1,
+            hasmore2,
             savedpoint: Vec::new(),
         })
     }
@@ -70,13 +70,13 @@ impl SortScan {
     }
 
     pub fn restore_position(&self) -> Result<(), String> {
-        if let Some(rid1) = self.savedpoint.get(0) {
+        if let Some(rid1) = self.savedpoint.first() {
             self.s1
                 .lock()
                 .map_err(|_| "failed to get lock")?
                 .move_to_rid(rid1.clone())?;
         }
-        if let Some(rid2) = self.savedpoint.get(0) {
+        if let Some(rid2) = self.savedpoint.first() {
             self.s2
                 .as_ref()
                 .unwrap()

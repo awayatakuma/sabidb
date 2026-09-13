@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# Rejects a commit whose formatting is not what rustfmt produces.
+# It never rewrites files: running cargo fmt is left to you, so that what you
+# staged stays what you commit.
+#
+# Enable once per clone:
+#   git config core.hooksPath .githooks
+
+if ! command -v cargo >/dev/null 2>&1; then
+	echo "pre-commit: cargo not found, skipping the formatting check" >&2
+	exit 0
+fi
+
+if ! cargo fmt --all -- --check; then
+	echo >&2
+	echo "pre-commit: formatting check failed." >&2
+	echo "Run 'cargo fmt --all', review the result, then commit again." >&2
+	exit 1
+fi

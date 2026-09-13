@@ -10,9 +10,9 @@ pub struct InsertData {
 impl InsertData {
     pub fn new(tblname: String, flds: Vec<String>, vals: Vec<Constant>) -> Self {
         InsertData {
-            tblname: tblname,
-            flds: flds,
-            vals: vals,
+            tblname,
+            flds,
+            vals,
         }
     }
     pub fn table_name(&self) -> String {

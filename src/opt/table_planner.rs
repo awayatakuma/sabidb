@@ -33,12 +33,12 @@ impl TablePlanner {
         Ok(TablePlanner {
             myplan: Arc::new(Mutex::new(myplan)),
             mypred,
-            myschema: myschema,
+            myschema,
             indexes: mdm
                 .lock()
                 .map_err(|_| "failed to get lock")?
                 .get_index_info(tblname, tx.clone())?,
-            tx: tx,
+            tx,
         })
     }
 
@@ -64,7 +64,7 @@ impl TablePlanner {
         }
         let p = self.make_index_join(current.clone(), currsch.clone())?;
         if p.is_some() {
-            return Ok(p);
+            Ok(p)
         } else {
             return Ok(Some(self.make_product_join(current, currsch)?));
         }

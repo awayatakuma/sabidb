@@ -17,10 +17,7 @@ struct FieldInfo {
 
 impl FieldInfo {
     fn new(field_type: i32, length: i32) -> Self {
-        Self {
-            field_type: field_type,
-            length: length,
-        }
+        Self { field_type, length }
     }
 }
 
@@ -28,6 +25,12 @@ impl FieldInfo {
 pub struct Schema {
     fields: Arc<Mutex<Vec<String>>>,
     info: Arc<Mutex<HashMap<String, FieldInfo>>>,
+}
+
+impl Default for Schema {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Schema {
@@ -38,12 +41,7 @@ impl Schema {
         }
     }
 
-    pub fn add_field(
-        &self,
-        fldname: &String,
-        field_type: i32,
-        length: i32,
-    ) -> Result<(), String> {
+    pub fn add_field(&self, fldname: &String, field_type: i32, length: i32) -> Result<(), String> {
         self.fields
             .lock()
             .map_err(|_| "failed to get lock")?
@@ -74,12 +72,7 @@ impl Schema {
     }
 
     pub fn add_all(&self, sch: &Schema) -> Result<(), String> {
-        let fldnames = {
-            sch.fields
-                .lock()
-                .map_err(|_| "failed to get lock")?
-                .clone()
-        };
+        let fldnames = { sch.fields.lock().map_err(|_| "failed to get lock")?.clone() };
         for fldname in fldnames.iter() {
             self.add(fldname, sch)?;
         }

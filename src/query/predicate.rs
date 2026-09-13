@@ -25,6 +25,12 @@ impl fmt::Display for Predicate {
     }
 }
 
+impl Default for Predicate {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Predicate {
     pub fn new() -> Self {
         Predicate { terms: Vec::new() }
@@ -59,39 +65,32 @@ impl Predicate {
     pub fn select_sub_pred(&self, sch: &Schema) -> Result<Option<Predicate>, String> {
         let mut result = Predicate::new();
         for t in &self.terms {
-            if t.applies_to(&sch)? {
+            if t.applies_to(sch)? {
                 // Todo check if t can be cloned
                 result.terms.push(t.clone());
             }
         }
-        if result.terms.len() == 0 {
+        if result.terms.is_empty() {
             return Ok(None);
         }
 
         Ok(Some(result))
     }
 
-    pub fn join_sub_pred(
-        &self,
-        sch1: &Schema,
-        sch2: &Schema,
-    ) -> Result<Option<Predicate>, String> {
+    pub fn join_sub_pred(&self, sch1: &Schema, sch2: &Schema) -> Result<Option<Predicate>, String> {
         let mut result = Predicate::new();
         let newsch = Schema::new();
         newsch.add_all(sch1)?;
         newsch.add_all(sch2)?;
         let newsch = newsch;
         for t in &self.terms {
-            if !t.applies_to(&sch1)?
-                && !t.applies_to(&sch2)?
-                && t.applies_to(&newsch)?
-            {
+            if !t.applies_to(sch1)? && !t.applies_to(sch2)? && t.applies_to(&newsch)? {
                 // Todo check if t can be cloned
                 result.terms.push(t.clone());
             }
         }
 
-        if result.terms.len() == 0 {
+        if result.terms.is_empty() {
             return Ok(None);
         }
 

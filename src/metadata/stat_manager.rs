@@ -24,7 +24,7 @@ impl StatManager {
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<Self, String> {
         let ret = StatManager {
-            table_manager: table_manager,
+            table_manager,
             table_stats: Arc::new(Mutex::new(HashMap::new())),
             num_calls: Arc::new(Mutex::new(0)),
         };
@@ -57,7 +57,9 @@ impl StatManager {
     }
 
     fn refreash_statistics_internal(&self, tx: Arc<Mutex<Transaction>>) -> Result<(), String> {
-        let tcatlayout = self.table_manager.get_layout("tblcat".to_string(), tx.clone())?;
+        let tcatlayout = self
+            .table_manager
+            .get_layout("tblcat".to_string(), tx.clone())?;
         let mut tcat = TableScan::new(tx.clone(), "tblcat".to_string(), tcatlayout)?;
         let mut table_stats = self.table_stats.lock().map_err(|_| "failed to get lock")?;
         while tcat.next()? {

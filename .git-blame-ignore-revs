@@ -1,0 +1,10 @@
+# Commits that only reformat code. `git blame` skips them so that lines keep
+# pointing at the change that last altered their meaning.
+#
+# Enable once per clone:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub reads this file automatically.
+
+# style: apply cargo fmt and clippy --fix across the codebase
+85226ce24692d0a6d6d552da5a735a169009988a

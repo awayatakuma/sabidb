@@ -11,10 +11,7 @@ struct CountFn {
 #[allow(dead_code)]
 impl CountFn {
     pub fn new(fldname: String) -> Self {
-        CountFn {
-            fldname: fldname,
-            count: 0,
-        }
+        CountFn { fldname, count: 0 }
     }
 }
 

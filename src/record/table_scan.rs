@@ -40,15 +40,15 @@ impl TableScan {
             blk
         } else {
             // moveToBlock
-            let blk = BlockId::new(filename.clone(), 0);
-            blk
+
+            BlockId::new(filename.clone(), 0)
         };
         let rp = RecordPage::new(tx.clone(), blk, layout.clone())?;
         Ok(TableScan {
-            tx: tx,
-            layout: layout,
+            tx,
+            layout,
             rp: Arc::new(Mutex::new(rp)),
-            filename: filename,
+            filename,
             current_slot: -1,
         })
     }
@@ -170,10 +170,7 @@ impl Scan for TableScan {
     }
 
     fn has_field(&self, fldname: &String) -> Result<bool, String> {
-        let ret = self
-            .layout
-            .schema()
-            .has_field(fldname)?;
+        let ret = self.layout.schema().has_field(fldname)?;
         Ok(ret)
     }
 
@@ -185,7 +182,7 @@ impl Scan for TableScan {
         Ok(())
     }
 
-    fn to_update_scan(&mut self) -> Result<Arc<Mutex<dyn UpdateScan + 'static >>, String> {
+    fn to_update_scan(&mut self) -> Result<Arc<Mutex<dyn UpdateScan + 'static>>, String> {
         Ok(Arc::new(Mutex::new(self.clone())))
     }
 
@@ -208,7 +205,9 @@ impl UpdateScan for TableScan {
         match fldtype {
             field_type::INTEGER => self.set_int(fldname, val.as_int().ok_or("val is not int")?),
             field_type::BOOLEAN => self.set_bool(fldname, val.as_bool().ok_or("val is not bool")?),
-            field_type::VARCHAR => self.set_string(fldname, val.as_string().ok_or("val is not string")?),
+            field_type::VARCHAR => {
+                self.set_string(fldname, val.as_string().ok_or("val is not string")?)
+            }
             _ => panic!("unknown field type {} for field {}", fldtype, fldname),
         }
     }

@@ -8,10 +8,7 @@ pub struct CreateTableData {
 
 impl CreateTableData {
     pub fn new(tblname: String, sch: Schema) -> Self {
-        CreateTableData {
-            tblname: tblname,
-            sch: sch,
-        }
+        CreateTableData { tblname, sch }
     }
 
     pub fn table_name(&self) -> String {

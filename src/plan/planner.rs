@@ -18,10 +18,7 @@ impl Planner {
         qplanner: Arc<Mutex<dyn QueryPlanner>>,
         uplanner: Arc<Mutex<dyn UpdatePlanner>>,
     ) -> Self {
-        Planner {
-            qplanner: qplanner,
-            uplanner: uplanner,
-        }
+        Planner { qplanner, uplanner }
     }
 
     pub fn create_query_planner(

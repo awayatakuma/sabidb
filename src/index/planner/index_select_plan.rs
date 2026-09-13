@@ -16,16 +16,12 @@ pub struct IndexSelectPlan {
 
 impl IndexSelectPlan {
     pub fn new(p: Arc<Mutex<dyn Plan>>, ii: IndexInfo, val: Constant) -> Self {
-        IndexSelectPlan {
-            p: p,
-            ii: ii,
-            val: val,
-        }
+        IndexSelectPlan { p, ii, val }
     }
 }
 
 impl Plan for IndexSelectPlan {
-    fn open(&self) -> Result<Arc<Mutex<dyn scan::Scan + 'static >>, String> {
+    fn open(&self) -> Result<Arc<Mutex<dyn scan::Scan + 'static>>, String> {
         let s = self.p.lock().map_err(|_| "failed to get lock")?.open()?;
         // throws an exception if p is not a tableplan.
         let mut binding = s.lock().map_err(|_| "failed to get lock")?;

@@ -8,9 +8,9 @@ pub struct CreateIndexData {
 impl CreateIndexData {
     pub fn new(idxname: String, tblname: String, fldname: String) -> Self {
         CreateIndexData {
-            idxname: idxname,
-            tblname: tblname,
-            fldname: fldname,
+            idxname,
+            tblname,
+            fldname,
         }
     }
 

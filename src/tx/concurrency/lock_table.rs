@@ -19,6 +19,12 @@ impl fmt::Display for LockAbortException {
     }
 }
 
+impl Default for LockTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LockTable {
     pub fn new() -> Self {
         Self {

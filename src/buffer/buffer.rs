@@ -18,9 +18,7 @@ pub struct Buffer {
 
 impl Buffer {
     pub fn new(fm: Arc<FileManager>, lm: Arc<Mutex<LogManager>>) -> Result<Self, String> {
-        let page = Page::new_from_blocksize(
-            fm.block_size() as usize,
-        );
+        let page = Page::new_from_blocksize(fm.block_size() as usize);
         Ok(Self {
             fm,
             lm,
@@ -67,8 +65,10 @@ impl Buffer {
         if self.txnum >= 0 {
             let mut lm = self.lm.lock().map_err(|_| "failed to get lock")?;
             lm.flush(self.lsn)?;
-            self.fm.write(&self.blk.clone().unwrap(), &self.contents)
-                .map_err(|_| "failed to write")?
+            self.fm
+                .write(&self.blk.clone().unwrap(), &self.contents)
+                .map_err(|_| "failed to write")?;
+            self.txnum = -1;
         }
         Ok(())
     }
@@ -121,6 +121,41 @@ mod tests {
             .unwrap();
         buff2.lock().unwrap().contents().set_int(80, 9999).unwrap();
         buff2.lock().unwrap().set_modified(1, 0);
+    }
+
+    #[test]
+    fn flush_marks_buffer_clean() {
+        const INITIAL_VALUE: i32 = 7;
+
+        let temp_dir = TempDir::new().unwrap();
+        let db = SimpleDB::new_with_sizes(temp_dir.path(), 400, 8);
+        let filename = "buffer_clean_test.tbl".to_string();
+        let tx = db.new_tx();
+        let blk = tx.lock().unwrap().append(filename).unwrap();
+        tx.lock().unwrap().pin(&blk).unwrap();
+        tx.lock()
+            .unwrap()
+            .set_int(&blk, 0, INITIAL_VALUE, true)
+            .unwrap();
+
+        let txnum = tx.lock().unwrap().tx_num();
+        db.buffer_manager()
+            .lock()
+            .unwrap()
+            .flush_all(txnum)
+            .unwrap();
+
+        // Once flushed, the buffer no longer belongs to any modifying tx.
+        let buffer = db
+            .buffer_manager()
+            .lock()
+            .unwrap()
+            .pin(&blk)
+            .unwrap()
+            .unwrap();
+        assert_eq!(buffer.lock().unwrap().modifying_tx(), -1);
+        db.buffer_manager().lock().unwrap().unpin(buffer).unwrap();
+        tx.lock().unwrap().rollback().unwrap();
     }
 
     #[test]

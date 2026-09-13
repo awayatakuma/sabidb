@@ -18,7 +18,7 @@ impl QueryPlanner for BetterQueryPlanner {
         &mut self,
         data: crate::parse::query_data::QueryData,
         tx: std::sync::Arc<std::sync::Mutex<crate::tx::transaction::Transaction>>,
-    ) -> Result<std::sync::Arc<std::sync::Mutex<dyn Plan + 'static >>, String> {
+    ) -> Result<std::sync::Arc<std::sync::Mutex<dyn Plan + 'static>>, String> {
         //Step 1: Create a plan for each mentioned table or view.
         let mut plans = vec![];
         for tblname in data.tables() {
@@ -69,6 +69,6 @@ impl QueryPlanner for BetterQueryPlanner {
 
 impl BetterQueryPlanner {
     pub fn _new(mdm: MetadataManager) -> Self {
-        BetterQueryPlanner { mdm: mdm }
+        BetterQueryPlanner { mdm }
     }
 }

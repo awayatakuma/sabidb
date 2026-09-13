@@ -105,11 +105,7 @@ impl UpdatePlanner for BasicUpdatePlanner {
         self.mdm
             .lock()
             .map_err(|_| "failed to get lock")?
-            .create_table(
-                data.table_name(),
-                data.new_schema(),
-                tx,
-            )?;
+            .create_table(data.table_name(), data.new_schema(), tx)?;
         Ok(0)
     }
 
@@ -140,6 +136,6 @@ impl UpdatePlanner for BasicUpdatePlanner {
 
 impl BasicUpdatePlanner {
     pub fn new(mdm: Arc<Mutex<MetadataManager>>) -> Self {
-        BasicUpdatePlanner { mdm: mdm }
+        BasicUpdatePlanner { mdm }
     }
 }

@@ -43,7 +43,7 @@ impl Scan for IndexSelectScan {
                 .get_data_rid()?;
             self.ts.move_to_rid(rid)?;
         }
-        return Ok(ok);
+        Ok(ok)
     }
 
     fn get_int(&self, fldname: &String) -> Result<i32, String> {
@@ -72,7 +72,7 @@ impl Scan for IndexSelectScan {
         Ok(())
     }
 
-    fn to_update_scan(&mut self) -> Result<Arc<Mutex<dyn UpdateScan + 'static >>, String> {
+    fn to_update_scan(&mut self) -> Result<Arc<Mutex<dyn UpdateScan + 'static>>, String> {
         Err("Unexpected downcast".to_string())
     }
 

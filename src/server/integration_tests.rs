@@ -1,11 +1,17 @@
 #[cfg(test)]
 mod tests {
-    use tempfile::TempDir;
     use crate::server::simple_db::SimpleDB;
+    use tempfile::TempDir;
 
-    fn run_update(planner: &mut crate::plan::planner::Planner, sql: &str, tx: std::sync::Arc<std::sync::Mutex<crate::tx::transaction::Transaction>>) {
+    fn run_update(
+        planner: &mut crate::plan::planner::Planner,
+        sql: &str,
+        tx: std::sync::Arc<std::sync::Mutex<crate::tx::transaction::Transaction>>,
+    ) {
         println!("SQL: {}", sql);
-        planner.execute_update(sql, tx).expect(&format!("Failed to execute: {}", sql));
+        planner
+            .execute_update(sql, tx)
+            .unwrap_or_else(|_| panic!("Failed to execute: {}", sql));
     }
 
     fn run_comprehensive_test(db: SimpleDB) {
@@ -16,10 +22,18 @@ mod tests {
 
         // 1. Create tables
         run_update(&mut planner, "create table students(sid int, sname varchar(9), majorid int, gradyear int, is_active boolean)", tx.clone());
-        run_update(&mut planner, "create table depts(did int, dname varchar(8))", tx.clone());
+        run_update(
+            &mut planner,
+            "create table depts(did int, dname varchar(8))",
+            tx.clone(),
+        );
 
         // 2. Create index
-        run_update(&mut planner, "create index majorid_idx on students(majorid)", tx.clone());
+        run_update(
+            &mut planner,
+            "create index majorid_idx on students(majorid)",
+            tx.clone(),
+        );
 
         // 3. Insert data into students
         run_update(&mut planner, "insert into students(sid, sname, majorid, gradyear, is_active) values (1, 'joe', 10, 2021, true)", tx.clone());
@@ -29,9 +43,21 @@ mod tests {
         run_update(&mut planner, "insert into students(sid, sname, majorid, gradyear, is_active) values (5, 'bob', 30, 2020, false)", tx.clone());
 
         // 4. Insert data into depts
-        run_update(&mut planner, "insert into depts(did, dname) values (10, 'compsci')", tx.clone());
-        run_update(&mut planner, "insert into depts(did, dname) values (20, 'math')", tx.clone());
-        run_update(&mut planner, "insert into depts(did, dname) values (30, 'drama')", tx.clone());
+        run_update(
+            &mut planner,
+            "insert into depts(did, dname) values (10, 'compsci')",
+            tx.clone(),
+        );
+        run_update(
+            &mut planner,
+            "insert into depts(did, dname) values (20, 'math')",
+            tx.clone(),
+        );
+        run_update(
+            &mut planner,
+            "insert into depts(did, dname) values (30, 'drama')",
+            tx.clone(),
+        );
 
         // 5. Select all students and verify values
         let qry = "select sid, sname, majorid, gradyear from students".to_string();
@@ -42,7 +68,11 @@ mod tests {
         let mut results = Vec::new();
         while scan.lock().unwrap().next().unwrap() {
             let sid = scan.lock().unwrap().get_int(&"sid".to_string()).unwrap();
-            let sname = scan.lock().unwrap().get_string(&"sname".to_string()).unwrap();
+            let sname = scan
+                .lock()
+                .unwrap()
+                .get_string(&"sname".to_string())
+                .unwrap();
             results.push((sid, sname));
             count += 1;
         }
@@ -59,10 +89,18 @@ mod tests {
         let mut count = 0;
         while scan.lock().unwrap().next().unwrap() {
             let sid = scan.lock().unwrap().get_int(&"sid".to_string()).unwrap();
-            let sname = scan.lock().unwrap().get_string(&"sname".to_string()).unwrap();
-            if sid == 1 { assert_eq!(sname, "joe"); }
-            else if sid == 3 { assert_eq!(sname, "max"); }
-            else { panic!("Unexpected sid: {}", sid); }
+            let sname = scan
+                .lock()
+                .unwrap()
+                .get_string(&"sname".to_string())
+                .unwrap();
+            if sid == 1 {
+                assert_eq!(sname, "joe");
+            } else if sid == 3 {
+                assert_eq!(sname, "max");
+            } else {
+                panic!("Unexpected sid: {}", sid);
+            }
             count += 1;
         }
         assert_eq!(count, 2);
@@ -74,8 +112,16 @@ mod tests {
         let scan = plan.lock().unwrap().open().unwrap();
         let mut count = 0;
         while scan.lock().unwrap().next().unwrap() {
-            let sname = scan.lock().unwrap().get_string(&"sname".to_string()).unwrap();
-            let dname = scan.lock().unwrap().get_string(&"dname".to_string()).unwrap();
+            let sname = scan
+                .lock()
+                .unwrap()
+                .get_string(&"sname".to_string())
+                .unwrap();
+            let dname = scan
+                .lock()
+                .unwrap()
+                .get_string(&"dname".to_string())
+                .unwrap();
             match sname.as_str() {
                 "joe" | "max" => assert_eq!(dname, "compsci"),
                 "amy" | "sue" => assert_eq!(dname, "math"),
@@ -87,7 +133,11 @@ mod tests {
         assert_eq!(count, 5);
 
         // 8. Create view
-        run_update(&mut planner, "create view cs_students as select sid, sname from students where majorid = 10", tx.clone());
+        run_update(
+            &mut planner,
+            "create view cs_students as select sid, sname from students where majorid = 10",
+            tx.clone(),
+        );
 
         // 9. Select from view and verify values
         let qry = "select sid, sname from cs_students".to_string();
@@ -96,28 +146,51 @@ mod tests {
         let scan = plan.lock().unwrap().open().unwrap();
         let mut count = 0;
         while scan.lock().unwrap().next().unwrap() {
-            let sname = scan.lock().unwrap().get_string(&"sname".to_string()).unwrap();
+            let sname = scan
+                .lock()
+                .unwrap()
+                .get_string(&"sname".to_string())
+                .unwrap();
             assert!(sname == "joe" || sname == "max");
             count += 1;
         }
         assert_eq!(count, 2);
 
         // 10. Update and verify value-level change
-        run_update(&mut planner, "update students set gradyear = 2023 where sid = 1", tx.clone());
+        run_update(
+            &mut planner,
+            "update students set gradyear = 2023 where sid = 1",
+            tx.clone(),
+        );
 
         let qry = "select sid, sname, gradyear from students where sid = 1".to_string();
         println!("SQL: {}", qry);
         let plan = planner.create_query_planner(&qry, tx.clone()).unwrap();
         let scan = plan.lock().unwrap().open().unwrap();
-        assert!(scan.lock().unwrap().next().unwrap(), "Should find updated student");
-        let gy = scan.lock().unwrap().get_int(&"gradyear".to_string()).unwrap();
-        let sn = scan.lock().unwrap().get_string(&"sname".to_string()).unwrap();
+        assert!(
+            scan.lock().unwrap().next().unwrap(),
+            "Should find updated student"
+        );
+        let gy = scan
+            .lock()
+            .unwrap()
+            .get_int(&"gradyear".to_string())
+            .unwrap();
+        let sn = scan
+            .lock()
+            .unwrap()
+            .get_string(&"sname".to_string())
+            .unwrap();
         assert_eq!(gy, 2023, "Gradyear should be updated to 2023");
         assert_eq!(sn, "joe");
         scan.lock().unwrap().close().unwrap();
 
         // 11. Delete and verify removal
-        run_update(&mut planner, "delete from students where sid = 5", tx.clone());
+        run_update(
+            &mut planner,
+            "delete from students where sid = 5",
+            tx.clone(),
+        );
 
         let qry = "select sid, sname from students".to_string();
         println!("SQL: {}", qry);
@@ -139,10 +212,18 @@ mod tests {
         let mut count = 0;
         while scan.lock().unwrap().next().unwrap() {
             let sid = scan.lock().unwrap().get_int(&"sid".to_string()).unwrap();
-            let sname = scan.lock().unwrap().get_string(&"sname".to_string()).unwrap();
+            let sname = scan
+                .lock()
+                .unwrap()
+                .get_string(&"sname".to_string())
+                .unwrap();
             assert!(sid == 1 || sid == 3);
-            if sid == 1 { assert_eq!(sname, "joe"); }
-            if sid == 3 { assert_eq!(sname, "max"); }
+            if sid == 1 {
+                assert_eq!(sname, "joe");
+            }
+            if sid == 3 {
+                assert_eq!(sname, "max");
+            }
             count += 1;
         }
         assert_eq!(count, 2);

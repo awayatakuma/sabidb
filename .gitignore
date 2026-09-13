@@ -16,3 +16,11 @@ sabidb/*
 
 # Local-only files
 /.local/
+
+# VS Code: keep only the settings that are part of the project setup
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/*.code-snippets

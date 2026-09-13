@@ -77,7 +77,7 @@ impl ConcurrencyManager {
             thread::sleep(time::Duration::from_millis(100));
         }
 
-        return Err(From::from(LockAbortException));
+        Err(LockAbortException)
     }
 
     // This function corresponds to x_lock in LockTable in the original implementation
@@ -102,7 +102,7 @@ impl ConcurrencyManager {
             thread::sleep(time::Duration::from_millis(100));
         }
 
-        return Err(From::from(LockAbortException));
+        Err(LockAbortException)
     }
 
     pub fn release(&mut self) -> Result<(), String> {

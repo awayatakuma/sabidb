@@ -13,10 +13,7 @@ pub struct MaxFn {
 #[allow(dead_code)]
 impl MaxFn {
     pub fn new(fldname: String) -> Self {
-        MaxFn {
-            fldname: fldname,
-            val: None,
-        }
+        MaxFn { fldname, val: None }
     }
 }
 

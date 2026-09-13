@@ -16,14 +16,14 @@ pub enum Term {
 impl std::fmt::Display for Term {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Term::Equate(lhs, rhs) => write!(f, "{} = {}", lhs.to_string(), rhs.to_string()),
+            Term::Equate(lhs, rhs) => write!(f, "{} = {}", lhs, rhs),
             Term::In(lhs, rhs_list) => {
                 let list = rhs_list
                     .iter()
                     .map(|c| c.to_string())
                     .collect::<Vec<String>>()
                     .join(", ");
-                write!(f, "{} in ({})", lhs.to_string(), list)
+                write!(f, "{} in ({})", lhs, list)
             }
         }
     }
@@ -60,7 +60,8 @@ impl Term {
     pub fn reduction_factor(&self, p: Arc<Mutex<dyn Plan>>) -> Result<i32, String> {
         match self {
             Term::Equate(lhs, rhs) => {
-                if let (Some(lhs_name), Some(rhs_name)) = (lhs.as_field_name(), rhs.as_field_name()) {
+                if let (Some(lhs_name), Some(rhs_name)) = (lhs.as_field_name(), rhs.as_field_name())
+                {
                     let locked_p = p.lock().map_err(|_| "failed to get lock")?;
                     return Ok(i32::max(
                         locked_p.distinct_values(lhs_name)?,

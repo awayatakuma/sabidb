@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex, atomic::{AtomicI32, Ordering}};
+use std::sync::{
+    atomic::{AtomicI32, Ordering},
+    Arc, Mutex,
+};
 
 use crate::{
     buffer::buffer_manager::BufferManager,
@@ -38,7 +41,7 @@ impl Transaction {
             concurrent_manager: Arc::new(Mutex::new(ConcurrencyManager::new(lt))),
             buffer_manager: bm.clone(),
             file_manager: fm,
-            txnum: txnum,
+            txnum,
             mybuffers: Arc::new(Mutex::new(BufferList::new_from_buffer_manager(bm.clone()))),
         };
         let recovery_manager = Arc::new(Mutex::new(RecoveryManager::new_from_managers(
@@ -247,9 +250,7 @@ impl Transaction {
             .lock()
             .map_err(|_| "failed to get lock")?
             .s_lock(&dummyblk)?;
-        let ret = self
-            .file_manager
-            .len(&filename)?;
+        let ret = self.file_manager.len(&filename)?;
         Ok(ret)
     }
 
@@ -259,16 +260,12 @@ impl Transaction {
             .lock()
             .map_err(|_| "failed to get lock")?
             .x_lock(&dummyblk)?;
-        let ret = self
-            .file_manager
-            .append(&filename)?;
+        let ret = self.file_manager.append(&filename)?;
         Ok(ret)
     }
 
     pub fn block_size(&self) -> Result<i32, String> {
-        Ok(self
-            .file_manager
-            .block_size())
+        Ok(self.file_manager.block_size())
     }
 
     pub fn available_buffers(&self) -> Result<i32, String> {

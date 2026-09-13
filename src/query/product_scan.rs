@@ -11,7 +11,7 @@ pub struct ProductScan {
 
 impl ProductScan {
     pub fn new(s1: Arc<Mutex<dyn Scan>>, s2: Arc<Mutex<dyn Scan>>) -> Result<Self, String> {
-        let mut ps = ProductScan { s1: s1, s2: s2 };
+        let mut ps = ProductScan { s1, s2 };
         ps.before_first()?;
         Ok(ps)
     }
@@ -33,7 +33,7 @@ impl Scan for ProductScan {
 
     fn next(&mut self) -> Result<bool, String> {
         if self.s2.lock().map_err(|_| "failed to get lock")?.next()? {
-            return Ok(true);
+            Ok(true)
         } else {
             self.s2
                 .lock()
@@ -147,7 +147,7 @@ impl Scan for ProductScan {
         Ok(())
     }
 
-    fn to_update_scan(&mut self) -> Result<Arc<Mutex<dyn UpdateScan + 'static >>, String> {
+    fn to_update_scan(&mut self) -> Result<Arc<Mutex<dyn UpdateScan + 'static>>, String> {
         Err("Unexpected downcast".to_string())
     }
 

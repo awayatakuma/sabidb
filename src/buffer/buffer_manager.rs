@@ -77,13 +77,13 @@ impl BufferManager {
         blk: &BlockId,
     ) -> Result<Option<Arc<Mutex<Buffer>>>, BufferAbortException> {
         let timestamp = Utc::now().timestamp_millis();
-        let mut buff = self.try_to_pin(&blk).map_err(|_| BufferAbortException)?;
+        let mut buff = self.try_to_pin(blk).map_err(|_| BufferAbortException)?;
         while buff.is_none() && !Self::waiting_too_long(timestamp) {
             thread::sleep(time::Duration::from_millis(MAX_TIME.try_into().unwrap()));
-            buff = self.try_to_pin(&blk).map_err(|_| BufferAbortException)?;
+            buff = self.try_to_pin(blk).map_err(|_| BufferAbortException)?;
         }
         if buff.is_none() {
-            return Err(From::from(BufferAbortException));
+            return Err(BufferAbortException);
         }
         Ok(buff)
     }
@@ -96,16 +96,14 @@ impl BufferManager {
         let buff: Option<Arc<Mutex<Buffer>>> = {
             if let Some(buffer) = self.find_existing_buffer(blk)? {
                 Some(buffer)
+            } else if let Some(new_buff) = self.choose_unpinned_buffer()? {
+                new_buff
+                    .lock()
+                    .map_err(|_| "failed to get lock")?
+                    .assign_to_block(blk)?;
+                Some(new_buff)
             } else {
-                if let Some(new_buff) = self.choose_unpinned_buffer()? {
-                    new_buff
-                        .lock()
-                        .map_err(|_| "failed to get lock")?
-                        .assign_to_block(blk)?;
-                    Some(new_buff)
-                } else {
-                    None
-                }
+                None
             }
         };
         if let Some(ref b) = buff {
@@ -122,7 +120,7 @@ impl BufferManager {
     fn find_existing_buffer(&self, blk: &BlockId) -> Result<Option<Arc<Mutex<Buffer>>>, String> {
         for buff in &self.bufferpool {
             if let Some(b) = buff.lock().map_err(|_| "failed to get lock")?.block() {
-                if b.eq(&blk) {
+                if b.eq(blk) {
                     return Ok(Some(buff.clone()));
                 }
             }
@@ -159,15 +157,15 @@ mod tests {
         buffs[0] = bm
             .lock()
             .unwrap()
-            .pin(Some(&BlockId::new("testfile".to_string(), 0)).unwrap());
+            .pin(&BlockId::new("testfile".to_string(), 0));
         buffs[1] = bm
             .lock()
             .unwrap()
-            .pin(Some(&BlockId::new("testfile".to_string(), 1)).unwrap());
+            .pin(&BlockId::new("testfile".to_string(), 1));
         buffs[2] = bm
             .lock()
             .unwrap()
-            .pin(Some(&BlockId::new("testfile".to_string(), 2)).unwrap());
+            .pin(&BlockId::new("testfile".to_string(), 2));
 
         bm.lock()
             .unwrap()
@@ -178,18 +176,18 @@ mod tests {
         buffs[3] = bm
             .lock()
             .unwrap()
-            .pin(Some(&BlockId::new("testfile".to_string(), 0)).unwrap());
+            .pin(&BlockId::new("testfile".to_string(), 0));
         buffs[4] = bm
             .lock()
             .unwrap()
-            .pin(Some(&BlockId::new("testfile".to_string(), 1)).unwrap());
+            .pin(&BlockId::new("testfile".to_string(), 1));
         println!("Available buffers: {}", bm.lock().unwrap().available());
 
         println!("Attempting to pin block 3...");
         let res = bm
             .lock()
             .unwrap()
-            .pin(Some(&BlockId::new("testfile".to_string(), 3)).unwrap());
+            .pin(&BlockId::new("testfile".to_string(), 3));
 
         assert_eq!(res.unwrap_err(), BufferAbortException);
 
@@ -202,7 +200,7 @@ mod tests {
         buffs[5] = bm
             .lock()
             .unwrap()
-            .pin(Some(&BlockId::new("testfile".to_string(), 3)).unwrap());
+            .pin(&BlockId::new("testfile".to_string(), 3));
 
         println!("Final Buffer Allocation:");
 

@@ -27,12 +27,7 @@ impl MultibufferProductPlan {
         sch.add_all(&lhs.lock().map_err(|_| "failed to get lock")?.schema()?)?;
         sch.add_all(&rhs.lock().map_err(|_| "failed to get lock")?.schema()?)?;
 
-        Ok(MultibufferProductPlan {
-            tx,
-            lhs: lhs,
-            rhs,
-            sch,
-        })
+        Ok(MultibufferProductPlan { tx, lhs, rhs, sch })
     }
 
     pub fn copy_records_from(&self, p: Arc<Mutex<dyn Plan>>) -> Result<TempTable, String> {

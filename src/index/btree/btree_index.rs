@@ -49,15 +49,9 @@ impl BTreeIndex {
         }
 
         let dirsch = Schema::new();
-        dirsch.add(
-            &"block".to_string(),
-            &leaf_layout.schema(),
-        )?;
+        dirsch.add(&"block".to_string(), &leaf_layout.schema())?;
 
-        dirsch.add(
-            &"dataval".to_string(),
-            &leaf_layout.schema(),
-        )?;
+        dirsch.add(&"dataval".to_string(), &leaf_layout.schema())?;
 
         let dirtbl = format!("{}dir", idxname);
         let dir_layout = Layout::new_from_schema(dirsch.clone())?;
@@ -92,7 +86,7 @@ impl BTreeIndex {
             leaf_layout,
             leaftbl,
             leaf: None,
-            rootblk: rootblk,
+            rootblk,
         })
     }
 }

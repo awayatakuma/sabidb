@@ -36,7 +36,7 @@ impl<'a> Parser<'a> {
 
     pub fn constant(&mut self) -> Result<Constant, super::lexer::BadSyntaxException> {
         if self.lex.match_string_constant() {
-            return Ok(Constant::new_from_string(self.lex.eat_string_constant()?));
+            Ok(Constant::new_from_string(self.lex.eat_string_constant()?))
         } else if self.lex.match_int_constant() {
             return Ok(Constant::new_from_i32(self.lex.eat_int_constant()?));
         } else if self.lex.match_keyword("true") {
@@ -52,9 +52,9 @@ impl<'a> Parser<'a> {
 
     pub fn expression(&mut self) -> Result<Expression, super::lexer::BadSyntaxException> {
         if self.lex.match_id() {
-            return Ok(Expression::new_from_fldname(self.field()?));
+            Ok(Expression::new_from_fldname(self.field()?))
         } else {
-            return Ok(Expression::new_from_val(self.constant()?));
+            Ok(Expression::new_from_val(self.constant()?))
         }
     }
 
@@ -72,7 +72,9 @@ impl<'a> Parser<'a> {
             return Ok(Term::new_in(lhs, rhs_list));
         }
 
-        Err(super::lexer::BadSyntaxException::new("Expected '=' or 'in'"))
+        Err(super::lexer::BadSyntaxException::new(
+            "Expected '=' or 'in'",
+        ))
     }
 
     pub fn predicate(&mut self) -> Result<Predicate, super::lexer::BadSyntaxException> {
@@ -238,12 +240,12 @@ impl<'a> Parser<'a> {
                 .add_all(&schema2)
                 .map_err(|_| super::lexer::BadSyntaxException::new("Failed to add all fields"))?;
         }
-        return Ok(schema);
+        Ok(schema)
     }
 
     fn field_def(&mut self) -> Result<Schema, super::lexer::BadSyntaxException> {
         let fldname = self.field()?;
-        return self.field_type(fldname);
+        self.field_type(fldname)
     }
 
     fn field_type(&mut self, fldname: String) -> Result<Schema, super::lexer::BadSyntaxException> {
@@ -260,11 +262,11 @@ impl<'a> Parser<'a> {
             self.lex.eat_delim('(')?;
             let str_len = self.lex.eat_int_constant()?;
             self.lex.eat_delim(')')?;
-            schema
-                .add_string_field(&fldname, str_len)
-                .map_err(|e| super::lexer::BadSyntaxException {
+            schema.add_string_field(&fldname, str_len).map_err(|e| {
+                super::lexer::BadSyntaxException {
                     message: format!("Failed to add varchar field: {}", e),
-                })?;
+                }
+            })?;
         } else if self.lex.match_keyword("boolean") {
             self.lex.eat_keyword("boolean")?;
             schema
@@ -278,7 +280,7 @@ impl<'a> Parser<'a> {
             });
         }
 
-        return Ok(schema);
+        Ok(schema)
     }
 
     fn create_view(&mut self) -> Result<CreateViewData, super::lexer::BadSyntaxException> {
@@ -433,7 +435,9 @@ mod tests {
         let res = p.update_cmd();
         assert!(res.is_err());
         let err = res.unwrap_err();
-        assert!(err.message.contains("Expected insert, delete, update, or create command"));
+        assert!(err
+            .message
+            .contains("Expected insert, delete, update, or create command"));
     }
 
     #[test]
@@ -442,7 +446,9 @@ mod tests {
         let res = p.update_cmd();
         assert!(res.is_err());
         let err = res.unwrap_err();
-        assert!(err.message.contains("Expected table, view, or index after 'create'"));
+        assert!(err
+            .message
+            .contains("Expected table, view, or index after 'create'"));
     }
 
     #[test]
@@ -470,6 +476,8 @@ mod tests {
         let res = p.update_cmd();
         assert!(res.is_err());
         let err = res.unwrap_err();
-        assert!(err.message.contains("Expected 'int', 'varchar', or 'boolean' field type"));
+        assert!(err
+            .message
+            .contains("Expected 'int', 'varchar', or 'boolean' field type"));
     }
 }

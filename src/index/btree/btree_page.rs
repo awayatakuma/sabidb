@@ -28,9 +28,9 @@ impl BTPage {
             .map_err(|_| "failed to get lock")?
             .pin(&currentblk)?;
         Ok(BTPage {
-            tx: tx,
+            tx,
             currentblk: Some(currentblk),
-            layout: layout,
+            layout,
         })
     }
 
@@ -96,9 +96,20 @@ impl BTPage {
     }
 
     pub fn append_new(&self, flag: i32) -> Result<BlockId, String> {
-        let tx = self.tx.lock().map_err(|_| "failed to get lock")?;
-        let blk = tx.append(self.currentblk.clone().unwrap().file_name())?;
+        let blk = self
+            .tx
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .append(self.currentblk.clone().unwrap().file_name())?;
+        self.tx
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .pin(&blk)?;
         self.format(&blk, flag)?;
+        self.tx
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .unpin(&blk)?;
         Ok(blk)
     }
 
@@ -106,9 +117,9 @@ impl BTPage {
         self.tx
             .lock()
             .map_err(|_| "failed to get lock")?
-            .set_int(&blk, 0, flag, false)?;
+            .set_int(blk, 0, flag, false)?;
         self.tx.lock().map_err(|_| "failed to get lock")?.set_int(
-            &blk,
+            blk,
             INTEGER_BYTES as usize,
             0,
             false,
@@ -133,7 +144,7 @@ impl BTPage {
         let binding = binding.lock().map_err(|_| "failed to get lock")?;
         let flds = binding.iter();
         for fldname in flds {
-            let offset = self.layout.offset(&fldname)?;
+            let offset = self.layout.offset(fldname)?;
             if self.layout.schema().field_type(fldname)? == INTEGER {
                 self.tx.lock().map_err(|_| "failed to get lock")?.set_int(
                     blk,
@@ -204,7 +215,7 @@ impl BTPage {
             .tx
             .lock()
             .map_err(|_| "failed to get lock")?
-            .get_int(&self.currentblk.as_ref().unwrap(), pos as usize);
+            .get_int(self.currentblk.as_ref().unwrap(), pos as usize);
     }
 
     fn get_string(&self, slot: i32, fldname: String) -> Result<String, String> {
@@ -319,17 +330,156 @@ impl BTPage {
     }
 
     fn fldpos(&self, slot: i32, fldname: String) -> Result<i32, String> {
-        let offset = self
-            .layout
-            .offset(&fldname)?;
+        let offset = self.layout.offset(&fldname)?;
         let ret = self.slotpos(slot)? + offset as i32;
         Ok(ret)
     }
 
     fn slotpos(&self, slot: i32) -> Result<i32, String> {
-        let slotsize = self
-            .layout
-            .slot_size();
+        let slotsize = self.layout.slot_size();
         Ok(INTEGER_BYTES + INTEGER_BYTES + (slot * slotsize))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{sync::mpsc, thread, time::Duration};
+
+    use tempfile::TempDir;
+
+    use crate::{
+        plan::planner::Planner, server::simple_db::SimpleDB, tx::transaction::Transaction,
+    };
+    use std::sync::{Arc, Mutex};
+
+    /// Runs `body` on its own thread so a deadlock in the split path fails the
+    /// test instead of hanging the whole suite.
+    fn within(secs: u64, body: impl FnOnce() + Send + 'static) {
+        let (done, finished) = mpsc::channel();
+        thread::spawn(move || {
+            body();
+            let _ = done.send(());
+        });
+        match finished.recv_timeout(Duration::from_secs(secs)) {
+            Ok(()) => {}
+            Err(mpsc::RecvTimeoutError::Timeout) => panic!("still running after {secs}s"),
+            Err(mpsc::RecvTimeoutError::Disconnected) => panic!("the body panicked"),
+        }
+    }
+
+    fn keys_matching(planner: &mut Planner, tx: Arc<Mutex<Transaction>>, key: i32) -> Vec<String> {
+        let qry = format!("select a, b from T where a = {}", key);
+        let plan = planner.create_query_planner(&qry, tx).unwrap();
+        let scan = plan.lock().unwrap().open().unwrap();
+        let mut found = Vec::new();
+        while scan.lock().unwrap().next().unwrap() {
+            found.push(scan.lock().unwrap().get_string(&"b".to_string()).unwrap());
+        }
+        scan.lock().unwrap().close().unwrap();
+        found.sort();
+        found
+    }
+
+    /// Enough rows that the leaf page cannot hold them all.
+    const ROWS: i32 = 400;
+
+    #[test]
+    fn split_keeps_every_key_reachable() {
+        within(60, || {
+            let temp_dir = TempDir::new().unwrap();
+            let db = SimpleDB::new_with_refined_planners(temp_dir.path());
+            let tx = db.new_tx();
+            let mut planner = db.planner.clone().unwrap();
+
+            planner
+                .execute_update("create table T(a int, b varchar(9))", tx.clone())
+                .unwrap();
+            planner
+                .execute_update("create index aidx on T(a)", tx.clone())
+                .unwrap();
+            for i in 0..ROWS {
+                let cmd = format!("insert into T(a, b) values ({}, 'v{}')", i, i);
+                planner.execute_update(&cmd, tx.clone()).unwrap();
+            }
+
+            // Without a split the whole index would still be one block.
+            let leaf_blocks = tx.lock().unwrap().size("aidxleaf".to_string()).unwrap();
+            assert!(leaf_blocks > 1, "no split happened: {} block", leaf_blocks);
+
+            for key in [0, 1, ROWS / 2, ROWS - 1] {
+                assert_eq!(
+                    keys_matching(&mut planner, tx.clone(), key),
+                    vec![format!("v{}", key)],
+                    "key {} lost after splitting",
+                    key
+                );
+            }
+            assert!(keys_matching(&mut planner, tx.clone(), ROWS).is_empty());
+            tx.lock().unwrap().commit().unwrap();
+        });
+    }
+
+    #[test]
+    fn split_survives_reopening() {
+        within(60, || {
+            let temp_dir = TempDir::new().unwrap();
+            {
+                let db = SimpleDB::new_with_refined_planners(temp_dir.path());
+                let tx = db.new_tx();
+                let mut planner = db.planner.clone().unwrap();
+                planner
+                    .execute_update("create table T(a int, b varchar(9))", tx.clone())
+                    .unwrap();
+                planner
+                    .execute_update("create index aidx on T(a)", tx.clone())
+                    .unwrap();
+                for i in 0..ROWS {
+                    let cmd = format!("insert into T(a, b) values ({}, 'v{}')", i, i);
+                    planner.execute_update(&cmd, tx.clone()).unwrap();
+                }
+                tx.lock().unwrap().commit().unwrap();
+            }
+
+            let db = SimpleDB::new_with_refined_planners(temp_dir.path());
+            let tx = db.new_tx();
+            let mut planner = db.planner.clone().unwrap();
+            assert_eq!(
+                keys_matching(&mut planner, tx.clone(), ROWS / 2),
+                vec![format!("v{}", ROWS / 2)]
+            );
+            tx.lock().unwrap().commit().unwrap();
+        });
+    }
+
+    #[test]
+    fn split_keeps_duplicate_keys_together() {
+        within(60, || {
+            let temp_dir = TempDir::new().unwrap();
+            let db = SimpleDB::new_with_refined_planners(temp_dir.path());
+            let tx = db.new_tx();
+            let mut planner = db.planner.clone().unwrap();
+
+            planner
+                .execute_update("create table T(a int, b varchar(9))", tx.clone())
+                .unwrap();
+            planner
+                .execute_update("create index aidx on T(a)", tx.clone())
+                .unwrap();
+            // One key repeated often enough to span a split, with other keys
+            // around it.
+            for i in 0..ROWS {
+                let key = if i % 2 == 0 { 42 } else { i };
+                let cmd = format!("insert into T(a, b) values ({}, 'v{}')", key, i);
+                planner.execute_update(&cmd, tx.clone()).unwrap();
+            }
+
+            let mut expected: Vec<String> = (0..ROWS)
+                .filter(|i| i % 2 == 0)
+                .map(|i| format!("v{}", i))
+                .collect();
+            expected.sort();
+            assert_eq!(keys_matching(&mut planner, tx.clone(), 42), expected);
+            tx.lock().unwrap().commit().unwrap();
+        });
     }
 }
