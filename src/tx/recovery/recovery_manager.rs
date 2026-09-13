@@ -259,6 +259,42 @@ mod tests {
         assert_eq!(p1.get_string(30).unwrap(), "def");
     }
 
+    #[test]
+    fn rollback_reads_unflushed_log_records() {
+        const INITIAL_VALUE: i32 = 7;
+        const UNCOMMITTED_VALUE: i32 = 99;
+
+        let temp_dir = TempDir::new().unwrap();
+        let db = SimpleDB::new_with_sizes(temp_dir.path(), 400, 8);
+        let filename = "rollback_test.tbl".to_string();
+
+        let initial_tx = db.new_tx();
+        let blk = initial_tx.lock().unwrap().append(filename).unwrap();
+        initial_tx.lock().unwrap().pin(&blk).unwrap();
+        initial_tx
+            .lock()
+            .unwrap()
+            .set_int(&blk, 0, INITIAL_VALUE, true)
+            .unwrap();
+        initial_tx.lock().unwrap().commit().unwrap();
+
+        let rolled_back_tx = db.new_tx();
+        rolled_back_tx.lock().unwrap().pin(&blk).unwrap();
+        rolled_back_tx
+            .lock()
+            .unwrap()
+            .set_int(&blk, 0, UNCOMMITTED_VALUE, true)
+            .unwrap();
+
+        // No explicit log or buffer flush is performed before rollback, so
+        // do_rollback has to reach the undo records through the log itself.
+        rolled_back_tx.lock().unwrap().rollback().unwrap();
+
+        let mut page = Page::new_from_blocksize(400);
+        db.file_manager().read(&blk, &mut page).unwrap();
+        assert_eq!(page.get_int(0).unwrap(), INITIAL_VALUE);
+    }
+
     fn print_values(
         fm: &Arc<FileManager>,
         blk0: &BlockId,

@@ -50,9 +50,7 @@ impl LogManager {
     }
 
     pub fn iterator(&mut self) -> Result<LogIterator, String> {
-        // self.flush_internal();
-        // TO-DO: In textbook, this code is needed but I think you cannot match requirement described in p84 if this code remains.
-        // So if another problem happens related to this code, I will remove the comment out.
+        self.flush_internal()?;
         return LogIterator::new(self.fm.clone(), self.current_blk.clone());
     }
 
@@ -81,9 +79,7 @@ impl LogManager {
     }
 
     fn flush_internal(&mut self) -> Result<(), String> {
-        let _ = self
-            .fm
-            .write(&self.current_blk, &self.logpage);
+        let _ = self.fm.write(&self.current_blk, &self.logpage);
         self.last_save_lsn = self.latest_lsn;
         Ok(())
     }
@@ -102,10 +98,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
 
         (
-            Arc::new(FileManager::new_from_blocksize(
-                temp_dir.path(),
-                400,
-            )),
+            Arc::new(FileManager::new_from_blocksize(temp_dir.path(), 400)),
             temp_dir,
         )
     }

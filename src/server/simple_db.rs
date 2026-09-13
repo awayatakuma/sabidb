@@ -32,9 +32,7 @@ pub struct SimpleDB {
 
 impl SimpleDB {
     pub fn new_with_sizes(dirname: &Path, blocksize: i32, buffsize: i32) -> Self {
-        let fm = Arc::new(FileManager::new_from_blocksize(
-            &dirname, blocksize,
-        ));
+        let fm = Arc::new(FileManager::new_from_blocksize(&dirname, blocksize));
         let lm = Arc::new(Mutex::new(
             LogManager::new(fm.clone(), LOG_FILE.to_string()).unwrap(),
         ));
@@ -60,7 +58,8 @@ impl SimpleDB {
         if is_new {
             println!("creating new database")
         } else {
-            println!("recovering existing database")
+            println!("recovering existing database");
+            tx.lock().unwrap().recover().unwrap();
         }
 
         let mdm = Arc::new(Mutex::new(
@@ -87,7 +86,8 @@ impl SimpleDB {
         if is_new {
             println!("creating new database")
         } else {
-            println!("recovering existing database")
+            println!("recovering existing database");
+            tx.lock().unwrap().recover().unwrap();
         }
 
         let mdm = Arc::new(Mutex::new(
@@ -156,9 +156,15 @@ fn print_logo() {
 #[cfg(test)]
 mod integration_tests {
 
+    use std::path::Path;
+
     use tempfile::TempDir;
 
-    use crate::{server::simple_db::SimpleDB, testlib::helper::create_student_data};
+    use crate::{
+        file::{block_id::BlockId, page::Page},
+        server::simple_db::SimpleDB,
+        testlib::helper::create_student_data,
+    };
 
     #[test]
     fn test_planner1() {
@@ -257,5 +263,179 @@ mod integration_tests {
         }
         locked_s.close().unwrap();
         tx.lock().unwrap().commit().unwrap();
+    }
+
+    #[test]
+    fn basic_constructor_recovers_uncommitted_flushed_page() {
+        assert_constructor_recovers(SimpleDB::new);
+    }
+
+    #[test]
+    fn refined_constructor_recovers_uncommitted_flushed_page() {
+        assert_constructor_recovers(SimpleDB::new_with_refined_planners);
+    }
+
+    #[test]
+    fn recovery_undoes_every_uncommitted_tx() {
+        const INITIAL_VALUE: i32 = 7;
+        const UNCOMMITTED_VALUE: i32 = 99;
+        const COMMITTED_VALUE: i32 = 42;
+
+        let temp_dir = TempDir::new().unwrap();
+        let filename = "multi_tx_recovery_test.tbl".to_string();
+        let blks: Vec<BlockId>;
+
+        {
+            let db = SimpleDB::new(temp_dir.path());
+
+            // Baseline: three committed blocks holding INITIAL_VALUE.
+            let setup_tx = db.new_tx();
+            blks = (0..3)
+                .map(|_| {
+                    let blk = setup_tx.lock().unwrap().append(filename.clone()).unwrap();
+                    setup_tx.lock().unwrap().pin(&blk).unwrap();
+                    setup_tx
+                        .lock()
+                        .unwrap()
+                        .set_int(&blk, 0, INITIAL_VALUE, true)
+                        .unwrap();
+                    blk
+                })
+                .collect();
+            setup_tx.lock().unwrap().commit().unwrap();
+
+            // Two transactions stay uncommitted and one commits. Each writes to
+            // its own block so they never contend for the same lock.
+            let uncommitted1 = db.new_tx();
+            let uncommitted2 = db.new_tx();
+            let committed = db.new_tx();
+
+            uncommitted1.lock().unwrap().pin(&blks[0]).unwrap();
+            uncommitted1
+                .lock()
+                .unwrap()
+                .set_int(&blks[0], 0, UNCOMMITTED_VALUE, true)
+                .unwrap();
+            uncommitted2.lock().unwrap().pin(&blks[1]).unwrap();
+            uncommitted2
+                .lock()
+                .unwrap()
+                .set_int(&blks[1], 0, UNCOMMITTED_VALUE, true)
+                .unwrap();
+            committed.lock().unwrap().pin(&blks[2]).unwrap();
+            committed
+                .lock()
+                .unwrap()
+                .set_int(&blks[2], 0, COMMITTED_VALUE, true)
+                .unwrap();
+
+            // The COMMIT record written here is what puts this transaction into
+            // do_recover's finished list, so its write survives while the two
+            // interleaved uncommitted ones are undone.
+            committed.lock().unwrap().commit().unwrap();
+
+            // Simulate a steal before a crash: both uncommitted pages reach disk
+            // with no COMMIT or ROLLBACK record behind them.
+            for tx in [&uncommitted1, &uncommitted2] {
+                let txnum = tx.lock().unwrap().tx_num();
+                db.buffer_manager()
+                    .lock()
+                    .unwrap()
+                    .flush_all(txnum)
+                    .unwrap();
+            }
+            uncommitted1.lock().unwrap().unpin(&blks[0]).unwrap();
+            uncommitted2.lock().unwrap().unpin(&blks[1]).unwrap();
+        }
+
+        let recovered_db = SimpleDB::new(temp_dir.path());
+        let mut page = Page::new_from_blocksize(400);
+        recovered_db.file_manager().read(&blks[0], &mut page).unwrap();
+        assert_eq!(page.get_int(0).unwrap(), INITIAL_VALUE);
+        recovered_db.file_manager().read(&blks[1], &mut page).unwrap();
+        assert_eq!(page.get_int(0).unwrap(), INITIAL_VALUE);
+        recovered_db.file_manager().read(&blks[2], &mut page).unwrap();
+        assert_eq!(page.get_int(0).unwrap(), COMMITTED_VALUE);
+    }
+
+    #[test]
+    fn commit_forces_pages_to_disk_so_recovery_needs_no_redo() {
+        const COMMITTED_VALUE: i32 = 123;
+
+        let temp_dir = TempDir::new().unwrap();
+        let filename = "force_policy_test.tbl".to_string();
+        let blk: BlockId;
+
+        {
+            let db = SimpleDB::new(temp_dir.path());
+            let tx = db.new_tx();
+            blk = tx.lock().unwrap().append(filename).unwrap();
+            tx.lock().unwrap().pin(&blk).unwrap();
+            tx.lock()
+                .unwrap()
+                .set_int(&blk, 0, COMMITTED_VALUE, true)
+                .unwrap();
+            tx.lock().unwrap().commit().unwrap();
+
+            // commit() flushes the transaction's buffers before writing its
+            // COMMIT record (force policy), so the value is already on disk
+            // without any explicit flush here. That is precisely why
+            // do_recover only ever undoes and never needs a redo pass.
+            let mut page = Page::new_from_blocksize(400);
+            db.file_manager().read(&blk, &mut page).unwrap();
+            assert_eq!(page.get_int(0).unwrap(), COMMITTED_VALUE);
+        }
+
+        // Recovery on restart must leave the committed value untouched.
+        let recovered_db = SimpleDB::new(temp_dir.path());
+        let mut page = Page::new_from_blocksize(400);
+        recovered_db.file_manager().read(&blk, &mut page).unwrap();
+        assert_eq!(page.get_int(0).unwrap(), COMMITTED_VALUE);
+    }
+
+    fn assert_constructor_recovers(open: fn(&Path) -> SimpleDB) {
+        const INITIAL_VALUE: i32 = 7;
+        const UNCOMMITTED_VALUE: i32 = 99;
+
+        let temp_dir = TempDir::new().unwrap();
+        let filename = "recovery_test.tbl".to_string();
+        let blk: BlockId;
+
+        {
+            let db = open(temp_dir.path());
+
+            let initial_tx = db.new_tx();
+            blk = initial_tx.lock().unwrap().append(filename.clone()).unwrap();
+            initial_tx.lock().unwrap().pin(&blk).unwrap();
+            initial_tx
+                .lock()
+                .unwrap()
+                .set_int(&blk, 0, INITIAL_VALUE, true)
+                .unwrap();
+            initial_tx.lock().unwrap().commit().unwrap();
+
+            let uncommitted_tx = db.new_tx();
+            uncommitted_tx.lock().unwrap().pin(&blk).unwrap();
+            uncommitted_tx
+                .lock()
+                .unwrap()
+                .set_int(&blk, 0, UNCOMMITTED_VALUE, true)
+                .unwrap();
+
+            // Simulate a steal before a crash: WAL and the uncommitted data page
+            // reach disk, but no COMMIT or ROLLBACK record is written.
+            let txnum = uncommitted_tx.lock().unwrap().tx_num();
+            db.buffer_manager()
+                .lock()
+                .unwrap()
+                .flush_all(txnum)
+                .unwrap();
+            uncommitted_tx.lock().unwrap().unpin(&blk).unwrap();
+        }
+
+        let recovered_db = open(temp_dir.path());
+        let mut page = Page::new_from_blocksize(400);
+        recovered_db.file_manager().read(&blk, &mut page).unwrap();
+        assert_eq!(page.get_int(0).unwrap(), INITIAL_VALUE);
     }
 }
