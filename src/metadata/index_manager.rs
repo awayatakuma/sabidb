@@ -52,12 +52,48 @@ impl IndexManager {
         fldname: String,
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<(), String> {
-        let mut ts = TableScan::new(tx, "idxcat".to_string(), self.layout.clone())?;
+        let mut ts = TableScan::new(tx.clone(), "idxcat".to_string(), self.layout.clone())?;
         ts.insert()?;
-        ts.set_string("indexname".to_string(), idxname)?;
-        ts.set_string("tablename".to_string(), tblname)?;
-        ts.set_string("fieldname".to_string(), fldname)?;
+        ts.set_string("indexname".to_string(), idxname.clone())?;
+        ts.set_string("tablename".to_string(), tblname.clone())?;
+        ts.set_string("fieldname".to_string(), fldname.clone())?;
         ts.close()?;
+
+        self.index_existing_records(idxname, tblname, fldname, tx)
+    }
+
+    fn index_existing_records(
+        &self,
+        idxname: String,
+        tblname: String,
+        fldname: String,
+        tx: Arc<Mutex<Transaction>>,
+    ) -> Result<(), String> {
+        let tbl_layout = self.table_manager.get_layout(tblname.clone(), tx.clone())?;
+        let tblsi = self
+            .stat_manager
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .get_stat_info(tblname.clone(), tbl_layout.clone(), tx.clone())?;
+        let ii = IndexInfo::new(
+            idxname,
+            fldname.clone(),
+            tbl_layout.schema(),
+            tx.clone(),
+            tblsi,
+        )?;
+        let idx = ii.open()?;
+
+        let mut ts = TableScan::new(tx, tblname, tbl_layout)?;
+        while ts.next()? {
+            let dataval = ts.get_val(&fldname)?;
+            let rid = ts.get_rid()?;
+            idx.lock()
+                .map_err(|_| "failed to get lock")?
+                .insert(&dataval, rid)?;
+        }
+        ts.close()?;
+        idx.lock().map_err(|_| "failed to get lock")?.close()?;
 
         Ok(())
     }
@@ -87,5 +123,60 @@ impl IndexManager {
         ts.close()?;
 
         Ok(ret)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tempfile::TempDir;
+
+    use crate::{
+        plan::planner::Planner, server::simple_db::SimpleDB, tx::transaction::Transaction,
+    };
+    use std::sync::{Arc, Mutex};
+
+    fn names_matching(planner: &mut Planner, tx: Arc<Mutex<Transaction>>, key: i32) -> Vec<String> {
+        let qry = format!("select a, b from T where a = {}", key);
+        let plan = planner.create_query_planner(&qry, tx).unwrap();
+        let scan = plan.lock().unwrap().open().unwrap();
+        let mut found = Vec::new();
+        while scan.lock().unwrap().next().unwrap() {
+            found.push(scan.lock().unwrap().get_string(&"b".to_string()).unwrap());
+        }
+        scan.lock().unwrap().close().unwrap();
+        found.sort();
+        found
+    }
+
+    #[test]
+    fn index_created_after_inserts_sees_the_existing_rows() {
+        let temp_dir = TempDir::new().unwrap();
+        let db = SimpleDB::new_with_refined_planners(temp_dir.path());
+        let tx = db.new_tx();
+        let mut planner = db.planner.clone().unwrap();
+
+        planner
+            .execute_update("create table T(a int, b varchar(9))", tx.clone())
+            .unwrap();
+        for i in 0..20 {
+            let cmd = format!("insert into T(a, b) values ({}, 'old{}')", i, i);
+            planner.execute_update(&cmd, tx.clone()).unwrap();
+        }
+
+        planner
+            .execute_update("create index aidx on T(a)", tx.clone())
+            .unwrap();
+        assert_eq!(names_matching(&mut planner, tx.clone(), 5), vec!["old5"]);
+
+        planner
+            .execute_update("insert into T(a, b) values (5, 'new')", tx.clone())
+            .unwrap();
+        assert_eq!(
+            names_matching(&mut planner, tx.clone(), 5),
+            vec!["new", "old5"]
+        );
+
+        assert!(names_matching(&mut planner, tx.clone(), 99).is_empty());
+        tx.lock().unwrap().commit().unwrap();
     }
 }
