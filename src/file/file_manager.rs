@@ -119,6 +119,8 @@ impl FileManager {
                 .read(true)
                 .write(true)
                 .create(true)
+                // Never truncate: an existing file holds the database itself.
+                .truncate(false)
                 .open(self.db_directory.join(file_name))
                 .map_err(|e| format!("failed to open file {}: {}", file_name, e))?,
         );
