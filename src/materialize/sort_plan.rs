@@ -33,9 +33,9 @@ impl SortPlan {
         let sch = p.lock().map_err(|_| "failed to get lock")?.schema()?;
 
         Ok(SortPlan {
-            tx: tx,
-            p: p,
-            sch: sch,
+            tx,
+            p,
+            sch,
             comp: RecordComparator::new(sortfields),
         })
     }
@@ -86,7 +86,7 @@ impl SortPlan {
             result.push(self.merge_two_runs(&p1, &p2)?);
         }
         if runs.len() == 1 {
-            result.push(runs.get(0).unwrap().clone());
+            result.push(runs.first().unwrap().clone());
         }
 
         Ok(result)
@@ -161,7 +161,7 @@ impl SortPlan {
             )?;
         }
 
-        Ok(src.lock().map_err(|_| "failed to get lock")?.next()?)
+        src.lock().map_err(|_| "failed to get lock")?.next()
     }
 }
 

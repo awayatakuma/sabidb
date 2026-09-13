@@ -19,7 +19,7 @@ pub struct FileManager {
 impl FileManager {
     pub fn new_from_blocksize(db_directory: &Path, blocksize: i32) -> Self {
         let is_new = !db_directory.exists()
-            || !db_directory.read_dir().unwrap().into_iter().any(|entry| {
+            || !db_directory.read_dir().unwrap().any(|entry| {
                 entry.is_ok_and(|e| {
                     let name = e.file_name();
                     name != OsStr::new(".") && name != OsStr::new("..")
@@ -29,7 +29,7 @@ impl FileManager {
             let _ = create_dir(db_directory);
         }
 
-        for file in db_directory.read_dir().unwrap().into_iter() {
+        for file in db_directory.read_dir().unwrap() {
             let filepath = file.unwrap().file_name();
             if filepath.to_string_lossy().starts_with("temp") {
                 let _ = remove_file(db_directory.join(filepath));
@@ -97,7 +97,7 @@ impl FileManager {
             .map_err(|_| "failed to access file's metadata")?
             .len() as i32
             / blocksize;
-        return Ok(len);
+        Ok(len)
     }
 
     pub fn is_new(&self) -> bool {

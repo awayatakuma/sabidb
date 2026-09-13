@@ -24,11 +24,7 @@ pub struct MetadataManager {
 impl MetadataManager {
     pub fn new(is_new: bool, tx: Arc<Mutex<Transaction>>) -> Result<Self, String> {
         let tbl_manager = Arc::new(TableManager::new(is_new, tx.clone())?);
-        let view_manager = Arc::new(ViewManager::new(
-            is_new,
-            tbl_manager.clone(),
-            tx.clone(),
-        )?);
+        let view_manager = Arc::new(ViewManager::new(is_new, tbl_manager.clone(), tx.clone())?);
         let stat_manager = Arc::new(Mutex::new(StatManager::new(
             tbl_manager.clone(),
             tx.clone(),
@@ -40,10 +36,10 @@ impl MetadataManager {
             tx.clone(),
         )?));
         Ok(MetadataManager {
-            tbl_manager: tbl_manager,
-            view_manager: view_manager,
-            stat_manager: stat_manager,
-            idx_manager: idx_manager,
+            tbl_manager,
+            view_manager,
+            stat_manager,
+            idx_manager,
         })
     }
 
@@ -63,9 +59,7 @@ impl MetadataManager {
         tblname: String,
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<Layout, String> {
-        let ret = self
-            .tbl_manager
-            .get_layout(tblname, tx)?;
+        let ret = self.tbl_manager.get_layout(tblname, tx)?;
         Ok(ret)
     }
 
@@ -85,9 +79,7 @@ impl MetadataManager {
         viewname: String,
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<Option<String>, String> {
-        let ret = self
-            .view_manager
-            .get_view_def(viewname, tx)?;
+        let ret = self.view_manager.get_view_def(viewname, tx)?;
         Ok(ret)
     }
 

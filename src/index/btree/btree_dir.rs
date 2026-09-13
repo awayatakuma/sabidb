@@ -15,11 +15,7 @@ pub struct BTreeDir {
 }
 
 impl BTreeDir {
-    pub fn new(
-        tx: Arc<Mutex<Transaction>>,
-        blk: BlockId,
-        layout: Layout,
-    ) -> Result<Self, String> {
+    pub fn new(tx: Arc<Mutex<Transaction>>, blk: BlockId, layout: Layout) -> Result<Self, String> {
         let filename = blk.file_name();
         let contents = BTPage::new(tx.clone(), blk, layout.clone())?;
 
@@ -85,7 +81,7 @@ impl BTreeDir {
         let splitpos = self.contents.get_num_recs()? / 2;
         let splitval = self.contents.get_data_val(splitpos)?;
         let newblk = self.contents.split(splitpos, level)?;
-        return Ok(Some(DirEntry::new(splitval, newblk.number())));
+        Ok(Some(DirEntry::new(splitval, newblk.number())))
     }
 
     fn find_child_block(&self, searchkey: &Constant) -> Result<BlockId, String> {

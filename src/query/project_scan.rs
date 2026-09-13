@@ -11,10 +11,7 @@ pub struct ProjectScan {
 
 impl ProjectScan {
     pub fn new(s: Arc<Mutex<dyn Scan>>, fieldlist: Vec<String>) -> Self {
-        ProjectScan {
-            s: s,
-            fieldlist: fieldlist,
-        }
+        ProjectScan { s, fieldlist }
     }
 }
 
@@ -82,7 +79,7 @@ impl Scan for ProjectScan {
         self.s.lock().map_err(|_| "failed to get lock")?.close()
     }
 
-    fn to_update_scan(&mut self) -> Result<Arc<Mutex<dyn UpdateScan + 'static >>, String> {
+    fn to_update_scan(&mut self) -> Result<Arc<Mutex<dyn UpdateScan + 'static>>, String> {
         Err("Unexpected downcast".to_string())
     }
 

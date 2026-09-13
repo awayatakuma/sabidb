@@ -20,7 +20,7 @@ impl BufferList {
         Self {
             buffers: HashMap::new(),
             pins: Vec::new(),
-            bm: bm,
+            bm,
         }
     }
 

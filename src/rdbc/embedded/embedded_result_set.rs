@@ -31,11 +31,7 @@ impl<'a> EmbeddedResultSet<'a> {
                 .schema()
                 .map_err(|e| SQLException::new(e.to_string()))?,
         ));
-        Ok(EmbeddedResultSet {
-            s: s,
-            sch: sch,
-            conn,
-        })
+        Ok(EmbeddedResultSet { s, sch, conn })
     }
 }
 

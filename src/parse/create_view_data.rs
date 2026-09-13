@@ -8,10 +8,7 @@ pub struct CreateViewData {
 
 impl CreateViewData {
     pub fn new(viewname: String, qrydata: QueryData) -> Self {
-        CreateViewData {
-            viewname: viewname,
-            qrydata: qrydata,
-        }
+        CreateViewData { viewname, qrydata }
     }
 
     pub fn view_name(&self) -> String {

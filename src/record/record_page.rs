@@ -15,24 +15,13 @@ pub struct RecordPage {
 }
 
 impl RecordPage {
-    pub fn new(
-        tx: Arc<Mutex<Transaction>>,
-        blk: BlockId,
-        layout: Layout,
-    ) -> Result<Self, String> {
+    pub fn new(tx: Arc<Mutex<Transaction>>, blk: BlockId, layout: Layout) -> Result<Self, String> {
         tx.lock().map_err(|_| "failed to get lock")?.pin(&blk)?;
-        Ok(RecordPage {
-            tx: tx,
-            blk: blk,
-            layout: layout,
-        })
+        Ok(RecordPage { tx, blk, layout })
     }
 
     pub fn get_int(&self, slot: i32, fldname: String) -> Result<i32, String> {
-        let fldpos = self.offset(slot)?
-            + self
-                .layout
-                .offset(&fldname)?;
+        let fldpos = self.offset(slot)? + self.layout.offset(&fldname)?;
 
         let ret = self
             .tx
@@ -44,10 +33,7 @@ impl RecordPage {
     }
 
     pub fn get_string(&self, slot: i32, fldname: String) -> Result<String, String> {
-        let fldpos = self.offset(slot)?
-            + self
-                .layout
-                .offset(&fldname)?;
+        let fldpos = self.offset(slot)? + self.layout.offset(&fldname)?;
 
         let ret = self
             .tx
@@ -64,10 +50,7 @@ impl RecordPage {
     }
 
     pub fn set_int(&mut self, slot: i32, fldname: String, val: i32) -> Result<(), String> {
-        let fldpos = self.offset(slot)?
-            + self
-                .layout
-                .offset(&fldname)?;
+        let fldpos = self.offset(slot)? + self.layout.offset(&fldname)?;
 
         self.tx
             .lock()
@@ -78,10 +61,7 @@ impl RecordPage {
     }
 
     pub fn set_string(&mut self, slot: i32, fldname: String, val: String) -> Result<(), String> {
-        let fldpos = self.offset(slot)?
-            + self
-                .layout
-                .offset(&fldname)?;
+        let fldpos = self.offset(slot)? + self.layout.offset(&fldname)?;
 
         self.tx
             .lock()
@@ -114,16 +94,8 @@ impl RecordPage {
                 .clone();
 
             for fldname in fldnames.iter() {
-                let fldpos = self.offset(slot)?
-                    + self
-                        .layout
-                        .offset(fldname)?;
-                if self
-                    .layout
-                    .schema()
-                    .field_type(fldname)?
-                    == INTEGER
-                {
+                let fldpos = self.offset(slot)? + self.layout.offset(fldname)?;
+                if self.layout.schema().field_type(fldname)? == INTEGER {
                     tx.set_int(&self.blk, fldpos, 0, false)?;
                 } else {
                     tx.set_string(&self.blk, fldpos, "".to_string(), false)?;
@@ -154,7 +126,7 @@ impl RecordPage {
     fn set_flag(&mut self, slot: i32, flag: i32) -> Result<(), String> {
         self.tx.lock().map_err(|_| "failed to get lock")?.set_int(
             &self.blk,
-            self.offset(slot)? as usize,
+            self.offset(slot)?,
             flag,
             true,
         )
@@ -167,7 +139,7 @@ impl RecordPage {
                 .tx
                 .lock()
                 .map_err(|_| "failed to get lock")?
-                .get_int(&self.blk, self.offset(slot)? as usize)?
+                .get_int(&self.blk, self.offset(slot)?)?
                 == flag
             {
                 return Ok(slot);
@@ -190,10 +162,7 @@ impl RecordPage {
         if slot < 0 {
             return Err(format!("invalid slot number: {}", slot));
         }
-        let ret = slot
-            * self
-                .layout
-                .slot_size();
+        let ret = slot * self.layout.slot_size();
         Ok(ret as usize)
     }
 }
@@ -303,10 +272,10 @@ mod tests {
 
         let slot = rp.insert_after(-1).unwrap();
         rp.set_bool(slot, "is_valid".to_string(), true).unwrap();
-        assert_eq!(rp.get_bool(slot, "is_valid".to_string()).unwrap(), true);
+        assert!(rp.get_bool(slot, "is_valid".to_string()).unwrap());
 
         rp.set_bool(slot, "is_valid".to_string(), false).unwrap();
-        assert_eq!(rp.get_bool(slot, "is_valid".to_string()).unwrap(), false);
+        assert!(!rp.get_bool(slot, "is_valid".to_string()).unwrap());
 
         tx.lock().unwrap().unpin(&blk).unwrap();
         tx.lock().unwrap().commit().unwrap();

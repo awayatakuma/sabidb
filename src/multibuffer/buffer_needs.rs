@@ -12,7 +12,7 @@ pub fn _best_root(available: i32, size: i32) -> i32 {
         k = i32::pow(size, 1 / i);
     }
 
-    return k;
+    k
 }
 
 pub fn best_factor(available: i32, size: i32) -> i32 {
@@ -28,5 +28,5 @@ pub fn best_factor(available: i32, size: i32) -> i32 {
         k = size / i;
     }
 
-    return k;
+    k
 }

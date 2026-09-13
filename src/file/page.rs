@@ -8,27 +8,34 @@ pub struct Page {
 
 impl Page {
     pub fn new_from_blocksize(blocksize: usize) -> Self {
-        return Page {
+        Page {
             bb: Arc::new(Mutex::new(vec![0; blocksize])),
-        };
+        }
     }
 
     pub fn new_from_bytes(b: Vec<u8>) -> Self {
-        return Page {
+        Page {
             bb: Arc::new(Mutex::new(b)),
-        };
+        }
     }
 
     pub fn get_int(&self, offset: usize) -> Result<i32, String> {
         let bb = self.bb.lock().map_err(|_| "failed to get lock")?;
-        let end = offset.checked_add(INTEGER_BYTES as usize)
+        let end = offset
+            .checked_add(INTEGER_BYTES as usize)
             .ok_or_else(|| format!("offset {} is too large", offset))?;
-        
+
         if end > bb.len() {
-            return Err(format!("Page::get_int boundary error: offset={}, end={}, buffer_len={}", offset, end, bb.len()));
+            return Err(format!(
+                "Page::get_int boundary error: offset={}, end={}, buffer_len={}",
+                offset,
+                end,
+                bb.len()
+            ));
         }
-        
-        let arr: [u8; 4] = bb.get(offset..end)
+
+        let arr: [u8; 4] = bb
+            .get(offset..end)
             .ok_or_else(|| format!("failed to access buffer at offset {}", offset))?
             .try_into()
             .map_err(|_| "failed to convert slice")?;
@@ -76,7 +83,7 @@ impl Page {
     }
 
     pub fn contents(&self) -> Arc<Mutex<Vec<u8>>> {
-        return self.bb.clone();
+        self.bb.clone()
     }
 
     #[allow(dead_code)]

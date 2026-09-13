@@ -29,12 +29,12 @@ impl BTreeLeaf {
         let contents = BTPage::new(tx.clone(), blk, layout.clone())?;
         let currentslot = contents.find_slot_before(&search_key)?;
         Ok(BTreeLeaf {
-            tx: tx,
-            layout: layout,
-            search_key: search_key,
-            contents: contents,
-            currentslot: currentslot,
-            filename: filename,
+            tx,
+            layout,
+            search_key,
+            contents,
+            currentslot,
+            filename,
         })
     }
 
@@ -99,7 +99,7 @@ impl BTreeLeaf {
         if lastkey.eq(&firstkey) {
             let newblk = self.contents.split(1, self.contents.get_flag()?)?;
             self.contents.set_flag(newblk.number())?;
-            return Ok(None);
+            Ok(None)
         } else {
             let mut splitpos = self.contents.get_num_recs()? / 2;
             let mut splitkey = self.contents.get_data_val(splitpos)?;
@@ -114,7 +114,7 @@ impl BTreeLeaf {
                 }
             }
             let newblk = self.contents.split(splitpos, -1)?;
-            return Ok(Some(DirEntry::new(splitkey, newblk.number())));
+            Ok(Some(DirEntry::new(splitkey, newblk.number())))
         }
     }
 

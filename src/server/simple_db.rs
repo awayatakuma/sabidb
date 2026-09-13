@@ -32,7 +32,7 @@ pub struct SimpleDB {
 
 impl SimpleDB {
     pub fn new_with_sizes(dirname: &Path, blocksize: i32, buffsize: i32) -> Self {
-        let fm = Arc::new(FileManager::new_from_blocksize(&dirname, blocksize));
+        let fm = Arc::new(FileManager::new_from_blocksize(dirname, blocksize));
         let lm = Arc::new(Mutex::new(
             LogManager::new(fm.clone(), LOG_FILE.to_string()).unwrap(),
         ));
@@ -350,11 +350,20 @@ mod integration_tests {
 
         let recovered_db = SimpleDB::new(temp_dir.path());
         let mut page = Page::new_from_blocksize(400);
-        recovered_db.file_manager().read(&blks[0], &mut page).unwrap();
+        recovered_db
+            .file_manager()
+            .read(&blks[0], &mut page)
+            .unwrap();
         assert_eq!(page.get_int(0).unwrap(), INITIAL_VALUE);
-        recovered_db.file_manager().read(&blks[1], &mut page).unwrap();
+        recovered_db
+            .file_manager()
+            .read(&blks[1], &mut page)
+            .unwrap();
         assert_eq!(page.get_int(0).unwrap(), INITIAL_VALUE);
-        recovered_db.file_manager().read(&blks[2], &mut page).unwrap();
+        recovered_db
+            .file_manager()
+            .read(&blks[2], &mut page)
+            .unwrap();
         assert_eq!(page.get_int(0).unwrap(), COMMITTED_VALUE);
     }
 

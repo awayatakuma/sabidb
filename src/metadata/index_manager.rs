@@ -34,16 +34,14 @@ impl IndexManager {
             sch.add_string_field(&"indexname".to_string(), MAX_NAME)?;
             sch.add_string_field(&"tablename".to_string(), MAX_NAME)?;
             sch.add_string_field(&"fieldname".to_string(), MAX_NAME)?;
-            table_manager
-                .create_table("idxcat".to_string(), sch, tx.clone())?;
+            table_manager.create_table("idxcat".to_string(), sch, tx.clone())?;
         }
-        let layout = table_manager
-                .get_layout("idxcat".to_string(), tx.clone())?;
+        let layout = table_manager.get_layout("idxcat".to_string(), tx.clone())?;
 
         Ok(IndexManager {
-            layout: layout,
-            table_manager: table_manager,
-            stat_manager: stat_manager,
+            layout,
+            table_manager,
+            stat_manager,
         })
     }
 
@@ -75,8 +73,7 @@ impl IndexManager {
             if ts.get_string(&"tablename".to_string())?.eq(&tblname) {
                 let idxname = ts.get_string(&"indexname".to_string())?;
                 let fldname = ts.get_string(&"fieldname".to_string())?;
-                let tbl_layout = self.table_manager
-                        .get_layout(tblname.clone(), tx.clone())?;
+                let tbl_layout = self.table_manager.get_layout(tblname.clone(), tx.clone())?;
                 let tblsi = self
                     .stat_manager
                     .lock()

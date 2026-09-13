@@ -36,12 +36,12 @@ impl IndexInfo {
         si: StatInfo,
     ) -> Result<Self, String> {
         let mut ret = IndexInfo {
-            idxname: idxname,
-            fldname: fldname,
-            tx: tx,
-            tbl_schema: tbl_schema,
+            idxname,
+            fldname,
+            tx,
+            tbl_schema,
             idx_layout: None,
-            si: si,
+            si,
         };
         ret.idx_layout = Some(ret.create_idx_layout()?);
 
@@ -67,11 +67,7 @@ impl IndexInfo {
             .lock()
             .map_err(|_| "failed to get lock")?
             .block_size()?
-            / self
-                .idx_layout
-                .as_ref()
-                .unwrap()
-                .slot_size();
+            / self.idx_layout.as_ref().unwrap().slot_size();
         let num_blocks = self.si.records_output() / rpb;
         // Ok(hash_index::search_cost(num_blocks, rpb))
         Ok(btree_index::search_cost(num_blocks, rpb))

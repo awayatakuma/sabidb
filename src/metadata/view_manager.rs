@@ -40,8 +40,9 @@ impl ViewManager {
         vdef: String,
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<(), String> {
-        let layout = self.table_manager
-                .get_layout("viewcat".to_string(), tx.clone())?;
+        let layout = self
+            .table_manager
+            .get_layout("viewcat".to_string(), tx.clone())?;
         let mut ts = TableScan::new(tx.clone(), "viewcat".to_string(), layout)?;
 
         ts.insert()?;
@@ -57,8 +58,9 @@ impl ViewManager {
         tx: Arc<Mutex<Transaction>>,
     ) -> Result<Option<String>, String> {
         let mut ret = None;
-        let layout = self.table_manager
-                .get_layout("viewcat".to_string(), tx.clone())?;
+        let layout = self
+            .table_manager
+            .get_layout("viewcat".to_string(), tx.clone())?;
         let mut ts = TableScan::new(tx.clone(), "viewcat".to_string(), layout)?;
 
         while ts.next()? {

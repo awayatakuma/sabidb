@@ -107,14 +107,10 @@ impl TableManager {
                 let offset = fcat.get_int(&"offset".to_string())?;
                 offsets.insert(fldname.clone(), offset as usize);
                 sch.add_field(&fldname, fldtype, fldlen)?;
-                }
-                }
-                fcat.close()?;
-                let ret = Layout::new(
-                sch,
-                Arc::new(offsets),
-                size,
-                );
+            }
+        }
+        fcat.close()?;
+        let ret = Layout::new(sch, Arc::new(offsets), size);
 
         Ok(ret)
     }
@@ -146,7 +142,7 @@ mod tests {
         let sch = Schema::new();
         sch.add_int_field(&"A".to_string()).unwrap();
         sch.add_string_field(&"B".to_string(), 9).unwrap();
-        
+
         tm.create_table("MyTable".to_string(), sch.clone(), tx.clone())
             .unwrap();
 

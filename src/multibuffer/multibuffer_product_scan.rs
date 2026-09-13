@@ -42,7 +42,7 @@ impl MultibufferProductScan {
             lhsscan,
             rhsscan: None,
             prodscan: None,
-            filename: filename,
+            filename,
             layout,
             chunksize,
             nextblknum: 0,

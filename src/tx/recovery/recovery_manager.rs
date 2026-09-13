@@ -1,15 +1,15 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{
-    buffer::buffer_manager::BufferManager,
-    log::log_manager::LogManager,
-};
+use crate::{buffer::buffer_manager::BufferManager, log::log_manager::LogManager};
 
 use super::{
-    checkpoint_record::CheckpointRecord, commit_record::CommitRecord,
+    checkpoint_record::CheckpointRecord,
+    commit_record::CommitRecord,
     log_record::{self, create_log_record},
-    rollback_record::RollbackRecord, set_int_record::SetIntRecord,
-    set_string_record::SetStringRecord, start_record::StartRecord,
+    rollback_record::RollbackRecord,
+    set_int_record::SetIntRecord,
+    set_string_record::SetStringRecord,
+    start_record::StartRecord,
 };
 
 #[derive(Debug)]
@@ -54,23 +54,35 @@ impl RecoveryManager {
         Ok(())
     }
 
-    pub fn set_int(&mut self, buff: Arc<Mutex<crate::buffer::buffer::Buffer>>, offset: i32) -> Result<i32, String> {
+    pub fn set_int(
+        &mut self,
+        buff: Arc<Mutex<crate::buffer::buffer::Buffer>>,
+        offset: i32,
+    ) -> Result<i32, String> {
         let oldval = buff.lock().unwrap().contents().get_int(offset as usize)?;
         let blk = buff.lock().unwrap().block().unwrap();
         let lsn = SetIntRecord::write_to_log(self.lm.clone(), self.txnum, &blk, offset, oldval)?;
         Ok(lsn)
     }
 
-    pub fn set_string(&mut self, buff: Arc<Mutex<crate::buffer::buffer::Buffer>>, offset: i32) -> Result<i32, String> {
-        let oldval = buff.lock().unwrap().contents().get_string(offset as usize)?;
+    pub fn set_string(
+        &mut self,
+        buff: Arc<Mutex<crate::buffer::buffer::Buffer>>,
+        offset: i32,
+    ) -> Result<i32, String> {
+        let oldval = buff
+            .lock()
+            .unwrap()
+            .contents()
+            .get_string(offset as usize)?;
         let blk = buff.lock().unwrap().block().unwrap();
         let lsn = SetStringRecord::write_to_log(self.lm.clone(), self.txnum, &blk, offset, oldval)?;
         Ok(lsn)
     }
 
     fn do_rollback(&mut self) -> Result<(), String> {
-        let mut iter = self.lm.lock().unwrap().iterator()?;
-        while let Some(bytes_res) = iter.next() {
+        let iter = self.lm.lock().unwrap().iterator()?;
+        for bytes_res in iter {
             let bytes = bytes_res?;
             let rec = create_log_record(bytes)?;
             if rec.tx_number() == self.txnum {
@@ -85,8 +97,8 @@ impl RecoveryManager {
 
     fn do_recover(&mut self) -> Result<(), String> {
         let mut finished_txs = Vec::new();
-        let mut iter = self.lm.lock().unwrap().iterator()?;
-        while let Some(bytes_res) = iter.next() {
+        let iter = self.lm.lock().unwrap().iterator()?;
+        for bytes_res in iter {
             let bytes = bytes_res?;
             let rec = create_log_record(bytes)?;
             if rec.op() == log_record::CHECKPOINT {
@@ -295,12 +307,7 @@ mod tests {
         assert_eq!(page.get_int(0).unwrap(), INITIAL_VALUE);
     }
 
-    fn print_values(
-        fm: &Arc<FileManager>,
-        blk0: &BlockId,
-        blk1: &BlockId,
-        msg: &str,
-    ) {
+    fn print_values(fm: &Arc<FileManager>, blk0: &BlockId, blk1: &BlockId, msg: &str) {
         println!("{}", msg);
         let mut p0 = Page::new_from_blocksize(400);
         let mut p1 = Page::new_from_blocksize(400);

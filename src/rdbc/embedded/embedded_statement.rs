@@ -28,7 +28,7 @@ impl<'a> StatementAdapter<'a> for EmbeddedStatement<'a> {
             .unwrap()
             .create_query_planner(qry, tx)
             .map_err(|e| SQLException::new(e.to_string()))?;
-        Ok(EmbeddedResultSet::new(pln, self.conn)?)
+        EmbeddedResultSet::new(pln, self.conn)
     }
 
     fn execute_update(
@@ -42,7 +42,7 @@ impl<'a> StatementAdapter<'a> for EmbeddedStatement<'a> {
             .planner
             .as_mut()
             .unwrap()
-            .execute_update(&cmd, tx)
+            .execute_update(cmd, tx)
             .map_err(|e| SQLException::new(e.to_string()))?;
         self.conn.commit()?;
         Ok(result)

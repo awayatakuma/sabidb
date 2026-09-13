@@ -24,7 +24,7 @@ impl LogManager {
 
         let current_blk = if logsize == 0 {
             let blk = fm.append(&logfile).unwrap();
-            logpage.set_int(0, fm.block_size() as i32)?;
+            logpage.set_int(0, fm.block_size())?;
             let _ = fm.write(&blk, &logpage);
             blk
         } else {
@@ -32,14 +32,14 @@ impl LogManager {
             let _ = fm.read(&blk, &mut logpage);
             blk
         };
-        return Ok(LogManager {
+        Ok(LogManager {
             fm,
-            logfile: logfile,
-            logpage: logpage,
-            current_blk: current_blk,
+            logfile,
+            logpage,
+            current_blk,
             latest_lsn: 0,
             last_save_lsn: 0,
-        });
+        })
     }
 
     pub fn flush(&mut self, lsn: i32) -> Result<(), String> {
@@ -51,7 +51,7 @@ impl LogManager {
 
     pub fn iterator(&mut self) -> Result<LogIterator, String> {
         self.flush_internal()?;
-        return LogIterator::new(self.fm.clone(), self.current_blk.clone());
+        LogIterator::new(self.fm.clone(), self.current_blk.clone())
     }
 
     pub fn append(&mut self, logrec: Vec<u8>) -> Result<i32, String> {
@@ -68,12 +68,12 @@ impl LogManager {
         self.logpage.set_bytes(recpos, &logrec)?;
         self.logpage.set_int(0, recpos as i32)?;
         self.latest_lsn += 1;
-        return Ok(self.latest_lsn);
+        Ok(self.latest_lsn)
     }
 
     fn append_new_block(&mut self) -> Result<BlockId, String> {
         let blk = self.fm.append(&self.logfile).unwrap();
-        self.logpage.set_int(0, self.fm.block_size() as i32)?;
+        self.logpage.set_int(0, self.fm.block_size())?;
         let _ = self.fm.write(&blk, &self.logpage);
         Ok(blk)
     }
@@ -105,8 +105,8 @@ mod tests {
 
     fn print_log_records(lm: Arc<Mutex<LogManager>>, msg: String) {
         println!("{}", msg);
-        let mut iter = lm.lock().unwrap().iterator().unwrap();
-        while let Some(rec_res) = iter.next() {
+        let iter = lm.lock().unwrap().iterator().unwrap();
+        for rec_res in iter {
             let rec: Vec<u8> = rec_res.unwrap();
             let p = Page::new_from_bytes(rec);
             let s = p.get_string(0).unwrap();
@@ -120,7 +120,7 @@ mod tests {
     fn create_records(lm: Arc<Mutex<LogManager>>, start: i32, end: i32) {
         println!("Creating records:");
         for i in start..=end {
-            let s = format!("{}{}", "record".to_string(), i.to_string());
+            let s = format!("{}{}", "record", i);
             let npos = Page::max_length(s.len());
             let b = vec![0u8; npos + INTEGER_BYTES as usize];
             let mut p = Page::new_from_bytes(b);

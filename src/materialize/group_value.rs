@@ -48,7 +48,7 @@ impl std::cmp::PartialEq for GroupValue {
                 return false;
             }
         }
-        return true;
+        true
     }
 }
 

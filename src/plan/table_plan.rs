@@ -36,10 +36,7 @@ impl Plan for TablePlan {
     }
 
     fn schema(&self) -> Result<crate::record::schema::Schema, String> {
-        Ok(self
-            .layout
-            .schema()
-            .clone())
+        Ok(self.layout.schema().clone())
     }
 }
 
@@ -49,9 +46,10 @@ impl TablePlan {
         tblname: String,
         md: Arc<Mutex<MetadataManager>>,
     ) -> Result<TablePlan, String> {
-        let layout = md.lock()
-                .map_err(|_| "failed to get lock")?
-                .get_layout(tblname.clone(), tx.clone())?;
+        let layout = md
+            .lock()
+            .map_err(|_| "failed to get lock")?
+            .get_layout(tblname.clone(), tx.clone())?;
         let si = md.lock().map_err(|_| "failed to get lock")?.get_stat_info(
             tblname.clone(),
             layout.clone(),
@@ -59,10 +57,10 @@ impl TablePlan {
         )?;
 
         Ok(TablePlan {
-            tblname: tblname,
-            tx: tx,
-            layout: layout,
-            si: si,
+            tblname,
+            tx,
+            layout,
+            si,
         })
     }
 }

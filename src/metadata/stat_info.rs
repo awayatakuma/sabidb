@@ -7,8 +7,8 @@ pub struct StatInfo {
 impl StatInfo {
     pub fn new(num_blocks: i32, num_recs: i32) -> Self {
         StatInfo {
-            num_blocks: num_blocks,
-            num_recs: num_recs,
+            num_blocks,
+            num_recs,
         }
     }
 

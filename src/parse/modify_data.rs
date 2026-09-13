@@ -11,10 +11,10 @@ pub struct ModifyData {
 impl ModifyData {
     pub fn new(tblname: String, fldname: String, newval: Expression, pred: Predicate) -> Self {
         ModifyData {
-            tblname: tblname,
-            fldname: fldname,
-            newval: newval,
-            pred: pred,
+            tblname,
+            fldname,
+            newval,
+            pred,
         }
     }
     pub fn table_name(&self) -> String {

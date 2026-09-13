@@ -7,10 +7,7 @@ pub struct DirEntry {
 
 impl DirEntry {
     pub fn new(dataval: Constant, blocknum: i32) -> Self {
-        DirEntry {
-            dataval: dataval,
-            blocknum: blocknum,
-        }
+        DirEntry { dataval, blocknum }
     }
     pub fn data_val(&self) -> Constant {
         self.dataval.clone()

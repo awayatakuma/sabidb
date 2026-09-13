@@ -24,17 +24,17 @@ impl IndexJoinPlan {
         sch.add_all(&p1.lock().map_err(|_| "failed to get lock")?.schema()?)?;
         sch.add_all(&p2.lock().map_err(|_| "failed to get lock")?.schema()?)?;
         Ok(IndexJoinPlan {
-            p1: p1,
-            p2: p2,
-            ii: ii,
-            joinfield: joinfield,
-            sch: sch,
+            p1,
+            p2,
+            ii,
+            joinfield,
+            sch,
         })
     }
 }
 
 impl Plan for IndexJoinPlan {
-    fn open(&self) -> Result<std::sync::Arc<std::sync::Mutex<dyn scan::Scan + 'static >>, String> {
+    fn open(&self) -> Result<std::sync::Arc<std::sync::Mutex<dyn scan::Scan + 'static>>, String> {
         let s1 = self.p1.lock().map_err(|_| "failed to get lock")?.open()?;
         let s2 = self.p2.lock().map_err(|_| "failed to get lock")?.open()?;
         // throws an exception if p is not a tableplan.

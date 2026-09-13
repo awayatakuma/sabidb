@@ -28,9 +28,9 @@ impl BTPage {
             .map_err(|_| "failed to get lock")?
             .pin(&currentblk)?;
         Ok(BTPage {
-            tx: tx,
+            tx,
             currentblk: Some(currentblk),
-            layout: layout,
+            layout,
         })
     }
 
@@ -106,9 +106,9 @@ impl BTPage {
         self.tx
             .lock()
             .map_err(|_| "failed to get lock")?
-            .set_int(&blk, 0, flag, false)?;
+            .set_int(blk, 0, flag, false)?;
         self.tx.lock().map_err(|_| "failed to get lock")?.set_int(
-            &blk,
+            blk,
             INTEGER_BYTES as usize,
             0,
             false,
@@ -133,7 +133,7 @@ impl BTPage {
         let binding = binding.lock().map_err(|_| "failed to get lock")?;
         let flds = binding.iter();
         for fldname in flds {
-            let offset = self.layout.offset(&fldname)?;
+            let offset = self.layout.offset(fldname)?;
             if self.layout.schema().field_type(fldname)? == INTEGER {
                 self.tx.lock().map_err(|_| "failed to get lock")?.set_int(
                     blk,
@@ -204,7 +204,7 @@ impl BTPage {
             .tx
             .lock()
             .map_err(|_| "failed to get lock")?
-            .get_int(&self.currentblk.as_ref().unwrap(), pos as usize);
+            .get_int(self.currentblk.as_ref().unwrap(), pos as usize);
     }
 
     fn get_string(&self, slot: i32, fldname: String) -> Result<String, String> {
@@ -319,17 +319,13 @@ impl BTPage {
     }
 
     fn fldpos(&self, slot: i32, fldname: String) -> Result<i32, String> {
-        let offset = self
-            .layout
-            .offset(&fldname)?;
+        let offset = self.layout.offset(&fldname)?;
         let ret = self.slotpos(slot)? + offset as i32;
         Ok(ret)
     }
 
     fn slotpos(&self, slot: i32) -> Result<i32, String> {
-        let slotsize = self
-            .layout
-            .slot_size();
+        let slotsize = self.layout.slot_size();
         Ok(INTEGER_BYTES + INTEGER_BYTES + (slot * slotsize))
     }
 }

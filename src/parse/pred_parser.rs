@@ -54,7 +54,9 @@ impl<'a> PredParser<'a> {
             }
             self.lex.eat_delim(')')?;
         } else {
-            return Err(super::lexer::BadSyntaxException::new("Expected '=' or 'in'"));
+            return Err(super::lexer::BadSyntaxException::new(
+                "Expected '=' or 'in'",
+            ));
         }
 
         Ok(())

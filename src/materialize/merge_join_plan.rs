@@ -37,7 +37,7 @@ impl MergeJoinPlan {
             p2: Arc::new(Mutex::new(p2)),
             fldname1,
             fldname2,
-            sch: sch,
+            sch,
         })
     }
 }

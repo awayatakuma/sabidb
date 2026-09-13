@@ -33,7 +33,7 @@ impl ChunkScan {
             buffs.push(RecordPage::new(tx.clone(), blk, layout.clone())?);
         }
         let mut ret = ChunkScan {
-            buffs: buffs,
+            buffs,
             tx,
             filename,
             layout,
@@ -107,9 +107,7 @@ impl Scan for ChunkScan {
     }
 
     fn has_field(&self, fldname: &String) -> Result<bool, String> {
-        self.layout
-            .schema()
-            .has_field(fldname)
+        self.layout.schema().has_field(fldname)
     }
 
     fn close(&mut self) -> Result<(), String> {

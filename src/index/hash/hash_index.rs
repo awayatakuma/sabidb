@@ -54,7 +54,7 @@ impl Index for HashIndex {
     }
 
     fn insert(&mut self, dataval: &Constant, datarid: RID) -> Result<(), String> {
-        self.before_first(&dataval)?;
+        self.before_first(dataval)?;
         let ts = self.ts.as_mut().unwrap();
         ts.insert()?;
         ts.set_int("block".to_string(), datarid.block_number())?;
@@ -86,9 +86,9 @@ impl Index for HashIndex {
 impl HashIndex {
     pub fn new(tx: Arc<Mutex<Transaction>>, idxname: String, layout: Layout) -> Self {
         HashIndex {
-            tx: tx,
-            idxname: idxname,
-            layout: layout,
+            tx,
+            idxname,
+            layout,
             search_key: None,
             ts: None,
         }

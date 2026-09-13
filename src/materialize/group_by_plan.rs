@@ -28,9 +28,9 @@ impl GroupByPlan {
 
         Ok(GroupByPlan {
             p: Arc::new(Mutex::new(sortplan)),
-            groupfields: groupfields,
-            aggfns: aggfns,
-            sch: sch,
+            groupfields,
+            aggfns,
+            sch,
         })
     }
 }

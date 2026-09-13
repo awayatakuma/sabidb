@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{constants::INTEGER_BYTES, file::page::Page};
 
@@ -15,11 +12,7 @@ pub struct Layout {
 }
 
 impl Layout {
-    pub fn new(
-        schema: Schema,
-        offsets: Arc<HashMap<String, usize>>,
-        slotsize: i32,
-    ) -> Self {
+    pub fn new(schema: Schema, offsets: Arc<HashMap<String, usize>>, slotsize: i32) -> Self {
         Layout {
             schema,
             offsets,

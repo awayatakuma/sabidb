@@ -56,13 +56,10 @@ impl ProjectPlan {
         let schema = Schema::new();
         for fld in fieldlist {
             schema
-                .add(
-                    &fld,
-                    &p.lock().map_err(|_| "failed to get lock")?.schema()?,
-                )
+                .add(&fld, &p.lock().map_err(|_| "failed to get lock")?.schema()?)
                 .unwrap();
         }
 
-        Ok(Self { p: p, schema })
+        Ok(Self { p, schema })
     }
 }

@@ -78,8 +78,8 @@ impl ProductPlan {
         sch.add_all(&p1.lock().map_err(|_| "failed to get lock")?.schema()?)?;
         sch.add_all(&p2.lock().map_err(|_| "failed to get lock")?.schema()?)?;
         Ok(ProductPlan {
-            p1: p1,
-            p2: p2,
+            p1,
+            p2,
             schema: sch,
         })
     }
