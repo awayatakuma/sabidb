@@ -2,6 +2,7 @@
 name = "sabidb"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
 
 [dependencies]
 tempfile = "3.17.1"
